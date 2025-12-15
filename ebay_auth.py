@@ -73,6 +73,5 @@ def get_token_cached():
 
 if __name__ == "__main__":
     token, expires_at = get_token_cached()
-    print("Access token:", token[:20] + "...")
     print("Expires (local):", datetime.fromtimestamp(expires_at))
     print("Seconds left:", max(0, expires_at - int(time.time())))
