@@ -1,0 +1,9 @@
+CREATE TABLE ebay_listings (
+    listing_id BIGINT PRIMARY KEY,
+    title TEXT,
+    price DECIMAL(10,2),
+    currency CHAR(3),
+    condition VARCHAR(50),
+    seller VARCHAR(255),
+    fetched_at TIMESTAMP
+);
