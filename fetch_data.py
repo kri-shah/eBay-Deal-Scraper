@@ -1,8 +1,11 @@
 # deal_finder.py
+import csv
 import json
+import os
 import time
 import statistics
 from datetime import datetime, timezone
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
@@ -21,7 +24,6 @@ def build_blacklist(cfg: Dict[str, Any], product: Dict[str, Any]) -> List[str]:
 
     merged = [s for s in (base + extra) if s not in remove]
 
-    # de-dupe while preserving order
     out: List[str] = []
     seen = set()
     for s in merged:
@@ -117,36 +119,41 @@ def trimmed_median(values: List[float], trim_fraction: float) -> Optional[float]
     return statistics.median(trimmed)
 
 
+def round2(val: float) -> float:
+    """Round to 2 decimal places with consistent half-up behavior."""
+    return float(Decimal(str(val)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+
+
 def score_deals(
     items: List[Dict[str, Any]],
     discount_threshold: float,
     trim_fraction: float
 ) -> List[Dict[str, Any]]:
-    buckets: Dict[str, List[Dict[str, Any]]] = {}
+    condition_groups: Dict[str, List[Dict[str, Any]]] = {}
     for it in items:
-        buckets.setdefault(condition_bucket(it), []).append(it)
+        condition_groups.setdefault(condition_bucket(it), []).append(it)
 
     deals: List[Dict[str, Any]] = []
 
-    for bucket, bucket_items in buckets.items():
-        totals = [total_price(it) for it in bucket_items]
+    for cond, cond_items in condition_groups.items():
+        totals = [total_price(it) for it in cond_items]
         med = trimmed_median(totals, trim_fraction)
         if med is None or med <= 0:
             continue
 
-        for it in bucket_items:
+        for it in cond_items:
             t = total_price(it)
             disc = (med - t) / med
             if disc >= discount_threshold:
                 deals.append({
-                    "bucket": bucket,
-                    "bucket_median": med,
-                    "discount_pct": disc,
+                    "condition": cond,
+                    "bucket_median": round2(med),
+                    "discount_pct": round2(disc),
                     "total": t,
                     "title": it.get("title"),
                     "itemId": it.get("itemId"),
                     "url": it.get("itemWebUrl"),
-                    "condition": it.get("condition"),
+                    "item_condition": it.get("condition"),
                     "buyingOptions": it.get("buyingOptions"),
                     "price": it.get("price"),
                 })
@@ -194,10 +201,42 @@ def print_deals(name: str, keyword: str, deals: List[Dict[str, Any]], discount_t
     for d in deals[:top_n]:
         pct = d["discount_pct"] * 100
         med = d["bucket_median"]
-        print(f"[{d['bucket']}] -{pct:.1f}%  total=${d['total']:.2f}  (median=${med:.2f})")
+        print(f"[{d['condition']}] -{pct:.1f}%  total=${d['total']:.2f}  (median=${med:.2f})")
         print(f"  {d['title']}")
         print(f"  {d['url']}\n")
 
+
+def save_deals_csv(deals: List[Dict[str, Any]], path: str) -> None:
+    """Save scored deals to a CSV file in a consistent column order."""
+    fieldnames = [
+        "condition",
+        "bucket_median",
+        "discount_pct",
+        "total",
+        "title",
+        "itemId",
+        "url",
+        "item_condition",
+        "buyingOptions",
+        "price",
+    ]
+
+    write_header = not os.path.exists(path) or os.path.getsize(path) == 0
+
+    with open(path, "a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        if write_header:
+            writer.writeheader()
+
+        for deal in deals:
+            row = {}
+            for key in fieldnames:
+                val = deal.get(key)
+                if isinstance(val, (dict, list)):
+                    row[key] = json.dumps(val)
+                else:
+                    row[key] = val
+            writer.writerow(row)
 
 if __name__ == "__main__":
     cfg = load_config("products.json")
@@ -227,6 +266,7 @@ if __name__ == "__main__":
         )
 
         deals = score_deals(items, discount_threshold=discount_threshold, trim_fraction=trim_fraction)
-        print_deals(name, query, deals, discount_threshold, top_n=10)
+        save_deals_csv(deals, f"deals.csv") # add _{name} to csv to have separate files for each product - keeping one massive file for now
+        # print_deals(name, query, deals, discount_threshold, top_n=10)
 
     print(f"Done in {time.time() - start:.2f}s")
