@@ -1,4 +1,3 @@
-# deal_finder.py
 import csv
 import json
 import os
