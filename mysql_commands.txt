@@ -21,5 +21,4 @@ CREATE TABLE ebay_listings (
 
   UNIQUE KEY uq_one_observation (api_query_id, fetched_at, ebay_item_id),
   KEY idx_query_time (api_query_id, fetched_at),
-  KEY idx_item_time (api_query_id, ebay_item_id, fetched_at)
 ) ENGINE=InnoDB;

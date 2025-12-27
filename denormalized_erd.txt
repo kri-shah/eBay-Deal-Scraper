@@ -15,7 +15,6 @@
 │     price                    DECIMAL(10,2)    NOT NULL                       │
 │     currency                 CHAR(3)          NOT NULL DEFAULT 'USD'         │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ UNIQUE: uq_one_observation (api_query_id, fetched_at, ebay_item_id)           │
-│ INDEX : idx_query_time     (api_query_id, fetched_at)                         │
-│ INDEX : idx_item_time      (api_query_id, ebay_item_id, fetched_at)           │
+│ UNIQUE: uq_one_observation (api_query_id, fetched_at, ebay_item_id)          │
+│ INDEX : idx_query_time     (api_query_id, fetched_at)                        │
 └──────────────────────────────────────────────────────────────────────────────┘
