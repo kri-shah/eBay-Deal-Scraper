@@ -1,8 +1,10 @@
-# deal_finder.py
+import csv
 import json
+import os
 import time
 import statistics
 from datetime import datetime, timezone
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
@@ -21,7 +23,6 @@ def build_blacklist(cfg: Dict[str, Any], product: Dict[str, Any]) -> List[str]:
 
     merged = [s for s in (base + extra) if s not in remove]
 
-    # de-dupe while preserving order
     out: List[str] = []
     seen = set()
     for s in merged:
@@ -30,7 +31,6 @@ def build_blacklist(cfg: Dict[str, Any], product: Dict[str, Any]) -> List[str]:
             out.append(s)
     return out
 
-
 def get_with_default(product: Dict[str, Any], cfg_default: Dict[str, Any], key: str, fallback: Any) -> Any:
     if key in product:
         return product[key]
@@ -38,17 +38,12 @@ def get_with_default(product: Dict[str, Any], cfg_default: Dict[str, Any], key: 
         return cfg_default[key]
     return fallback
 
-
-# -----------------------------
-# eBay Browse API calls
-# -----------------------------
 def make_headers(marketplace_id: str) -> Dict[str, str]:
     token, _ = get_token_cached()
     return {
         "Authorization": f"Bearer {token}",
         "X-EBAY-C-MARKETPLACE-ID": marketplace_id,
     }
-
 
 def browse_search(q: str, marketplace_id: str, limit: int = 50, offset: int = 0) -> Dict[str, Any]:
     url = f"{BROWSE_BASE}/item_summary/search"
@@ -60,9 +55,6 @@ def browse_search(q: str, marketplace_id: str, limit: int = 50, offset: int = 0)
     return r.json()
 
 
-# -----------------------------
-# Deal logic
-# -----------------------------
 def parse_money(m: Optional[Dict[str, Any]]) -> float:
     if not m:
         return 0.0
@@ -82,11 +74,9 @@ def total_price(item: Dict[str, Any]) -> float:
 
     return item_price + shipping_cost
 
-
 def is_fixed_price(item: Dict[str, Any]) -> bool:
     opts = item.get("buyingOptions") or []
     return "FIXED_PRICE" in opts
-
 
 def condition_bucket(item: Dict[str, Any]) -> str:
     c = (item.get("condition") or "").lower()
@@ -95,7 +85,6 @@ def condition_bucket(item: Dict[str, Any]) -> str:
     if "used" in c:
         return "USED"
     return "OTHER"
-
 
 def looks_junk(title: str, blacklist: List[str]) -> bool:
     t = (title or "").lower()
@@ -116,37 +105,40 @@ def trimmed_median(values: List[float], trim_fraction: float) -> Optional[float]
         return statistics.median(vals)
     return statistics.median(trimmed)
 
+def round2(val: float) -> float:
+    """Round to 2 decimal places with consistent half-up behavior."""
+    return float(Decimal(str(val)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
 def score_deals(
     items: List[Dict[str, Any]],
     discount_threshold: float,
     trim_fraction: float
 ) -> List[Dict[str, Any]]:
-    buckets: Dict[str, List[Dict[str, Any]]] = {}
+    condition_groups: Dict[str, List[Dict[str, Any]]] = {}
     for it in items:
-        buckets.setdefault(condition_bucket(it), []).append(it)
+        condition_groups.setdefault(condition_bucket(it), []).append(it)
 
     deals: List[Dict[str, Any]] = []
 
-    for bucket, bucket_items in buckets.items():
-        totals = [total_price(it) for it in bucket_items]
+    for cond, cond_items in condition_groups.items():
+        totals = [total_price(it) for it in cond_items]
         med = trimmed_median(totals, trim_fraction)
         if med is None or med <= 0:
             continue
 
-        for it in bucket_items:
+        for it in cond_items:
             t = total_price(it)
             disc = (med - t) / med
             if disc >= discount_threshold:
                 deals.append({
-                    "bucket": bucket,
-                    "bucket_median": med,
-                    "discount_pct": disc,
+                    "condition": cond,
+                    "bucket_median": round2(med),
+                    "discount_pct": round2(disc),
                     "total": t,
                     "title": it.get("title"),
                     "itemId": it.get("itemId"),
                     "url": it.get("itemWebUrl"),
-                    "condition": it.get("condition"),
+                    "item_condition": it.get("condition"),
                     "buyingOptions": it.get("buyingOptions"),
                     "price": it.get("price"),
                 })
@@ -160,7 +152,8 @@ def fetch_keyword_items(
     marketplace_id: str,
     limit: int,
     blacklist: List[str],
-    min_price: float = 1.0
+    min_price: float = 1.0,
+    conditions: Optional[List[str]] = None
 ) -> List[Dict[str, Any]]:
     data = browse_search(keyword, marketplace_id=marketplace_id, limit=limit)
     raw = data.get("itemSummaries", []) or []
@@ -176,11 +169,16 @@ def fetch_keyword_items(
             continue
         if parse_money(it.get("price")) < min_price:
             continue
+        
+        # Filter by condition if specified
+        if conditions:
+            item_condition = condition_bucket(it)
+            if item_condition not in conditions:
+                continue
 
         cleaned.append(it)
 
     return cleaned
-
 
 def print_deals(name: str, keyword: str, deals: List[Dict[str, Any]], discount_threshold: float, top_n: int = 10):
     print("\n" + "=" * 90)
@@ -194,10 +192,42 @@ def print_deals(name: str, keyword: str, deals: List[Dict[str, Any]], discount_t
     for d in deals[:top_n]:
         pct = d["discount_pct"] * 100
         med = d["bucket_median"]
-        print(f"[{d['bucket']}] -{pct:.1f}%  total=${d['total']:.2f}  (median=${med:.2f})")
+        print(f"[{d['condition']}] -{pct:.1f}%  total=${d['total']:.2f}  (median=${med:.2f})")
         print(f"  {d['title']}")
         print(f"  {d['url']}\n")
 
+
+def save_deals_csv(deals: List[Dict[str, Any]], path: str) -> None:
+    """Save scored deals to a CSV file in a consistent column order."""
+    fieldnames = [
+        "condition",
+        "bucket_median",
+        "discount_pct",
+        "total",
+        "title",
+        "itemId",
+        "url",
+        "item_condition",
+        "buyingOptions",
+        "price",
+    ]
+
+    write_header = not os.path.exists(path) or os.path.getsize(path) == 0
+
+    with open(path, "a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        if write_header:
+            writer.writeheader()
+
+        for deal in deals:
+            row = {}
+            for key in fieldnames:
+                val = deal.get(key)
+                if isinstance(val, (dict, list)):
+                    row[key] = json.dumps(val)
+                else:
+                    row[key] = val
+            writer.writerow(row)
 
 if __name__ == "__main__":
     cfg = load_config("products.json")
@@ -215,6 +245,7 @@ if __name__ == "__main__":
         discount_threshold = float(get_with_default(product, cfg_default, "discount_threshold", 0.15))
         trim_fraction = float(get_with_default(product, cfg_default, "trim_fraction", 0.15))
         min_price = float(get_with_default(product, cfg_default, "min_price", 1.0))
+        conditions = get_with_default(product, cfg_default, "conditions", None)
 
         blacklist = build_blacklist(cfg, product)
 
@@ -223,10 +254,12 @@ if __name__ == "__main__":
             marketplace_id=marketplace_id,
             limit=limit,
             blacklist=blacklist,
-            min_price=min_price
+            min_price=min_price,
+            conditions=conditions
         )
 
         deals = score_deals(items, discount_threshold=discount_threshold, trim_fraction=trim_fraction)
-        print_deals(name, query, deals, discount_threshold, top_n=10)
+        save_deals_csv(deals, f"deals.csv") # add _{name} to csv to have separate files for each product - keeping one massive file for now
+        # print_deals(name, query, deals, discount_threshold, top_n=10)
 
     print(f"Done in {time.time() - start:.2f}s")
