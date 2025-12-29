@@ -1,4 +1,5 @@
 import csv
+import hashlib
 import json
 import os
 import time
@@ -7,6 +8,7 @@ from datetime import datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Dict, List, Optional, Tuple
 
+import mysql.connector
 import requests
 from ebay_auth import get_token_cached  
 
@@ -170,7 +172,6 @@ def fetch_keyword_items(
         if parse_money(it.get("price")) < min_price:
             continue
         
-        # Filter by condition if specified
         if conditions:
             item_condition = condition_bucket(it)
             if item_condition not in conditions:
@@ -179,6 +180,101 @@ def fetch_keyword_items(
         cleaned.append(it)
 
     return cleaned
+
+def insert_listings_to_db(
+    items: List[Dict[str, Any]],
+    marketplace_id: str,
+    query_name: str,
+    api_query_text: str,
+    db_config: Dict[str, Any]
+) -> int:
+    if not items:
+        return 0    
+    api_query_id = hashlib.sha256(api_query_text.encode("utf-8")).hexdigest()
+    
+    fetched_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    insert_sql = """
+        INSERT INTO ebay_listings (
+            marketplace_id,
+            query_name,
+            api_query_text,
+            api_query_id,
+            fetched_at,
+            ebay_item_id,
+            title,
+            condition_category,
+            condition_description,
+            listing_url,
+            price,
+            currency
+        ) VALUES (
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+        )
+        ON DUPLICATE KEY UPDATE id=id
+    """
+    
+    rows_inserted = 0
+    conn = None
+    cursor = None
+    
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+        
+        for item in items:
+            ebay_item_id = item.get("itemId", "")
+            title = (item.get("title") or "")[:512]  # Truncate to fit VARCHAR(512)
+            
+            # Get condition info
+            cond_category = condition_bucket(item)
+            cond_description = item.get("condition")
+            if cond_description:
+                cond_description = cond_description[:255]  # Truncate to fit VARCHAR(255)
+            
+            listing_url = (item.get("itemWebUrl") or "")[:2048]  # Truncate to fit VARCHAR(2048)
+            
+            # Extract price and currency
+            price_data = item.get("price") or {}
+            price = parse_money(price_data)
+            currency = price_data.get("currency", "USD")[:3]
+            
+            row_data = (
+                marketplace_id,
+                query_name[:64], 
+                api_query_text[:255],
+                api_query_id,
+                fetched_at,
+                ebay_item_id[:64],  
+                title,
+                cond_category[:64],
+                cond_description,
+                listing_url,
+                price,
+                currency,
+            )
+            
+            try:
+                cursor.execute(insert_sql, row_data)
+                if cursor.rowcount > 0:
+                    rows_inserted += 1
+            except mysql.connector.Error as e:
+                print(f"Warning: Failed to insert item {ebay_item_id}: {e}")
+        
+        conn.commit()
+        
+    except mysql.connector.Error as e:
+        print(f"Database error: {e}")
+        if conn:
+            conn.rollback()
+        raise
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+    
+    return rows_inserted
+
 
 def print_deals(name: str, keyword: str, deals: List[Dict[str, Any]], discount_threshold: float, top_n: int = 10):
     print("\n" + "=" * 90)
@@ -248,7 +344,7 @@ if __name__ == "__main__":
         conditions = get_with_default(product, cfg_default, "conditions", None)
 
         blacklist = build_blacklist(cfg, product)
-
+        
         items = fetch_keyword_items(
             keyword=query,
             marketplace_id=marketplace_id,
@@ -257,7 +353,16 @@ if __name__ == "__main__":
             min_price=min_price,
             conditions=conditions
         )
+        db_config = {
+            "host": os.environ.get("MYSQL_HOST", "localhost"),
+            "port": int(os.environ.get("MYSQL_PORT", 3306)),
+            "user": os.environ.get("MYSQL_USER", "root"),
+            "password": os.environ.get("MYSQL_PASSWORD", ""),
+            "database": os.environ.get("MYSQL_DATABASE", ""),
+        }
 
+        insert_listings_to_db(items, marketplace_id=marketplace_id, query_name=name, api_query_text=query, db_config=db_config)
+        
         deals = score_deals(items, discount_threshold=discount_threshold, trim_fraction=trim_fraction)
         save_deals_csv(deals, f"deals.csv") # add _{name} to csv to have separate files for each product - keeping one massive file for now
         # print_deals(name, query, deals, discount_threshold, top_n=10)

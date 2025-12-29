@@ -9,15 +9,15 @@ CREATE TABLE ebay_listings (
   fetched_at DATETIME NOT NULL,
 
   ebay_item_id VARCHAR(64) NOT NULL,
-  title VARCHAR(512) NULL,
-  condition_category VARCHAR(64) NULL,
+  title VARCHAR(512) NOT NULL,
+  condition_category VARCHAR(64) NOT NULL,
   condition_description VARCHAR(255) NULL,
-  listing_url TEXT NULL,
+  listing_url VARCHAR(2048) NOT NULL,
 
   price DECIMAL(10,2) NOT NULL,
   currency CHAR(3) NOT NULL DEFAULT 'USD',
 
   PRIMARY KEY (id),
 
-  UNIQUE KEY uq_one_observation (api_query_id, fetched_at, ebay_item_id),
+  UNIQUE KEY uq_one_observation (api_query_id, fetched_at, ebay_item_id)
 ) ENGINE=InnoDB;
