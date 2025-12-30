@@ -12,6 +12,11 @@ import mysql.connector
 import requests
 from ebay_auth import get_token_cached  
 
+from dotenv import load_dotenv
+from pathlib import Path
+
+load_dotenv(Path(__file__).resolve().parent / ".env")
+
 BROWSE_BASE = "https://api.ebay.com/buy/browse/v1"
 
 def load_config(path: str = "products.json") -> Dict[str, Any]:
@@ -108,7 +113,6 @@ def trimmed_median(values: List[float], trim_fraction: float) -> Optional[float]
     return statistics.median(trimmed)
 
 def round2(val: float) -> float:
-    """Round to 2 decimal places with consistent half-up behavior."""
     return float(Decimal(str(val)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
 def score_deals(
@@ -223,17 +227,15 @@ def insert_listings_to_db(
         
         for item in items:
             ebay_item_id = item.get("itemId", "")
-            title = (item.get("title") or "")[:512]  # Truncate to fit VARCHAR(512)
+            title = (item.get("title") or "")[:512]
             
-            # Get condition info
             cond_category = condition_bucket(item)
             cond_description = item.get("condition")
             if cond_description:
-                cond_description = cond_description[:255]  # Truncate to fit VARCHAR(255)
+                cond_description = cond_description[:255]  
             
-            listing_url = (item.get("itemWebUrl") or "")[:2048]  # Truncate to fit VARCHAR(2048)
+            listing_url = (item.get("itemWebUrl") or "")[:2048]  
             
-            # Extract price and currency
             price_data = item.get("price") or {}
             price = parse_money(price_data)
             currency = price_data.get("currency", "USD")[:3]
@@ -325,8 +327,9 @@ def save_deals_csv(deals: List[Dict[str, Any]], path: str) -> None:
                     row[key] = val
             writer.writerow(row)
 
-if __name__ == "__main__":
-    cfg = load_config("products.json")
+if __name__ == "__main__":    
+    BASE_DIR = Path(__file__).resolve().parent
+    cfg = load_config(str(BASE_DIR / "products.json"))
 
     marketplace_id = cfg.get("marketplace_id", "EBAY_US")
     cfg_default = cfg.get("default", {})

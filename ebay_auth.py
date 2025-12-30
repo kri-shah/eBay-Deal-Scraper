@@ -31,8 +31,7 @@ SCOPE = os.getenv("EBAY_SCOPE", "https://api.ebay.com/oauth/api_scope")
 REFRESH_BUFFER = 60  # seconds
 
 def _cache_path() -> str:
-    # Cache should vary by env + client + scope
-    client_tag = CLIENT_ID[:8]  # don't write full id to disk logs
+    client_tag = CLIENT_ID[:8]
     scope_hash = hashlib.sha256(SCOPE.encode("utf-8")).hexdigest()[:12]
     return f".ebay_token_cache.{EBAY_ENV}.{client_tag}.{scope_hash}.json"
 
