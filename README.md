@@ -21,18 +21,15 @@ A Python-based tool to find deals on eBay by fetching listings and analyzing pri
 - Discount threshold and trim fraction settings
 - Condition-based price comparisons (NEW/USED/OTHER)
 
-### 3. Database Design (In Progress)
-- Designing denormalized MySQL schema for testing (`denormalized_erd.txt`)
+### 3. Temporary MySQL Database ✓
+- Designed denormalized MySQL schema for testing (`denormalized_erd.txt`)
 - Single `ebay_listings` table with time-series data
-- Will migrate to DynamoDB for production
+- Implemented insert logic in `fetch_data.py`
+- To test the database, automated data collection via cron
 
 **Schema highlights:**
 - Unique constraint on `(api_query_id, fetched_at, ebay_item_id)`
-- Indexes for time-based queries
-- Tracks marketplace, query, price, condition per listing
+- Automatic duplicate prevention on insert
 
-## Next Steps
-- [ ] Implement MySQL insert logic
-- [ ] Test time-series queries
-- [ ] Plan DynamoDB migration strategy
-
+### 4. AWS Production Architecture
+- Designed serverless architecture diagram (`AWS_design_diagram.png`)
