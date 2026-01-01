@@ -6,6 +6,7 @@ import hashlib
 import requests
 from dotenv import load_dotenv
 from datetime import datetime
+from pathlib import Path
 
 load_dotenv()
 
@@ -33,7 +34,8 @@ REFRESH_BUFFER = 60  # seconds
 def _cache_path() -> str:
     client_tag = CLIENT_ID[:8]
     scope_hash = hashlib.sha256(SCOPE.encode("utf-8")).hexdigest()[:12]
-    return f".ebay_token_cache.{EBAY_ENV}.{client_tag}.{scope_hash}.json"
+    cache_dir = Path(__file__).resolve().parent
+    return str(cache_dir / f".ebay_token_cache.{EBAY_ENV}.{client_tag}.{scope_hash}.json")
 
 def get_app_token():
     basic = base64.b64encode(f"{CLIENT_ID}:{CLIENT_SECRET}".encode("utf-8")).decode("utf-8")
