@@ -367,7 +367,7 @@ if __name__ == "__main__":
         insert_listings_to_db(items, marketplace_id=marketplace_id, query_name=name, api_query_text=query, db_config=db_config)
         
         deals = score_deals(items, discount_threshold=discount_threshold, trim_fraction=trim_fraction)
-        save_deals_csv(deals, f"deals.csv") # add _{name} to csv to have separate files for each product - keeping one massive file for now
+        save_deals_csv(deals, f"logs/deals.csv") # add _{name} to csv to have separate files for each product - keeping one massive file for now
         # print_deals(name, query, deals, discount_threshold, top_n=10)
 
     print(f"Done in {time.time() - start:.2f}s")
