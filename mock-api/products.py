@@ -121,15 +121,26 @@ def get_deals():
       ) ranked
       WHERE row_num IN (FLOOR((total_count + 1) / 2), CEIL((total_count + 1) / 2))
       GROUP BY api_query_id
+    ),
+    filtered_deals AS (
+      SELECT e.*
+      FROM {table_name} e
+      INNER JOIN trimmed_medians m ON e.api_query_id = m.api_query_id
+      WHERE e.price < 0.80 * m.trimmed_median
+        AND e.price > 0.35 * m.trimmed_median
+        AND e.fetched_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        AND e.api_query_id = %s
+    ),
+    deduplicated_deals AS (
+      SELECT 
+        *,
+        ROW_NUMBER() OVER (PARTITION BY listing_url ORDER BY price ASC, fetched_at DESC) as rn
+      FROM filtered_deals
     )
-    SELECT e.*
-    FROM {table_name} e
-    INNER JOIN trimmed_medians m ON e.api_query_id = m.api_query_id
-    WHERE e.price < 0.80 * m.trimmed_median
-      AND e.price > 0.35 * m.trimmed_median
-      AND e.fetched_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-      AND e.api_query_id = %s
-    ORDER BY e.price ASC
+    SELECT *
+    FROM deduplicated_deals
+    WHERE rn = 1
+    ORDER BY price ASC
     LIMIT 5
     """
     
