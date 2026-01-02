@@ -152,7 +152,6 @@ def score_deals(
     deals.sort(key=lambda d: d["discount_pct"], reverse=True)
     return deals
 
-
 def fetch_keyword_items(
     keyword: str,
     marketplace_id: str,
@@ -197,8 +196,9 @@ def insert_listings_to_db(
     api_query_id = hashlib.sha256(api_query_text.encode("utf-8")).hexdigest()
     
     fetched_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    insert_sql = """
-        INSERT INTO ebay_listings (
+    table_name = os.environ.get("MYSQL_TABLE", "")
+    insert_sql = f"""
+        INSERT INTO  {table_name} (
             marketplace_id,
             query_name,
             api_query_text,
