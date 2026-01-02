@@ -1,6 +1,6 @@
 # eBay Deal Scraper
 
-A Python-based tool to find deals on eBay by fetching listings and analyzing prices against median values.
+A Python-based tool to find deals on eBay by fetching listings and analyzing prices against historical median values.
 
 ## Progress
 
@@ -41,19 +41,39 @@ A Python-based tool to find deals on eBay by fetching listings and analyzing pri
 - Automatic data collection via cron job (`logs/cron.log`)
 - CSV export for historical analysis (`logs/deals.csv`, `logs/db.csv`)
 
+### 6. Mock API ✓
+- Flask API implementation complete (`mock-api/products.py`)
+- RESTful endpoints for fetching deals and product statistics
+- Serves as prototype for AWS API Gateway integration
+- CSV-based data storage for local testing
+
+**Key Endpoints:**
+- `GET /api/products` - Fetch all product categories and names
+- `GET /api/deals` - Retrieve current deals with filtering options
+
 ## Current Status
 
-**In Progress:**
-- SQL queries for averaging prices based on listing history
-- Mock Flask API (`mock_api/products.py`) - will simulate API Gateway on AWS
+**Completed:**
+- ✓ eBay API integration and authentication
+- ✓ Pricing engine with deal scoring algorithm
+- ✓ Mock API with RESTful endpoints
+- ✓ AWS architecture design
+
+**Next Up:**
+- Frontend development for deal visualization
+- AWS migration of entire stack
 
 ## Next Steps
 
-1. **Mock API Development**
-   - Create Flask API in `mock_api/products.py`
-   - Endpoints for fetching deals and product statistics
-   - Will serve as prototype for AWS API Gateway integration
-
-2. **Frontend Development**
+1. **Frontend Development**
    - Build web interface to display deals
    - Connect to mock API endpoints
+   - Implement filtering and sorting functionality
+   - Add product details and deal highlights
+
+2. **AWS Migration**
+   - Deploy Lambda functions for data collection
+   - Set up DynamoDB for historical pricing data
+   - Configure API Gateway to replace mock API
+   - Implement CloudWatch for monitoring and logging
+   - Set up EventBridge for scheduled scraping
