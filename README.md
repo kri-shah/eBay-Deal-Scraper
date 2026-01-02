@@ -1,6 +1,6 @@
 # eBay Deal Scraper
 
-A Python-based tool to find deals on eBay by fetching listings and analyzing prices against median values.
+A Python-based tool to find deals on eBay by fetching listings and analyzing prices against historical median values.
 
 ## Progress
 
