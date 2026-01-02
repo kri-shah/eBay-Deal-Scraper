@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 import json
 import os
 import mysql.connector
+from mysql.connector import pooling
 import hashlib
 
 app = Flask(__name__)
@@ -13,14 +14,36 @@ PRODUCTS_JSON_PATH = os.path.join(
     'products.json'
 )
 
-def connect_to_database(db_config):
-    try:
-        conn = mysql.connector.connect(**db_config)
-        cursor = conn.cursor()
-        return conn, cursor
-    except mysql.connector.Error as e:
-        print(f"Database error: {e}")
-        return None, None
+db_config = {
+    "host": os.environ.get("MYSQL_HOST", "localhost"),
+    "port": int(os.environ.get("MYSQL_PORT", 3306)),
+    "user": os.environ.get("MYSQL_USER", "root"),
+    "password": os.environ.get("MYSQL_PASSWORD", ""),
+    "database": os.environ.get("MYSQL_DATABASE", ""),
+}
+
+try:
+    connection_pool = pooling.MySQLConnectionPool(
+        pool_name="mypool",
+        pool_size=5,
+        pool_reset_session=True,
+        **db_config
+    )
+    print("Connection pool created successfully")
+
+except mysql.connector.Error as e:
+    print(f"Error creating connection pool: {e}")
+    connection_pool = None
+
+def get_db_connection():
+    """Get a connection from the pool"""
+    if connection_pool:
+        try:
+            return connection_pool.get_connection()
+        except mysql.connector.Error as e:
+            print(f"Error getting connection from pool: {e}")
+            return None
+    return None
 
 @app.route('/products', methods=['GET'])
 def get_products():
@@ -48,18 +71,13 @@ def get_deals():
     POST endpoint that returns deals filtered by search term.
     """
     
-    db_config = {
-        "host": os.environ.get("MYSQL_HOST", "localhost"),
-        "port": int(os.environ.get("MYSQL_PORT", 3306)),
-        "user": os.environ.get("MYSQL_USER", "root"),
-        "password": os.environ.get("MYSQL_PASSWORD", ""),
-        "database": os.environ.get("MYSQL_DATABASE", ""),
-    }
-
-    conn, cursor = connect_to_database(db_config)
+    # Get connection from pool
+    conn = get_db_connection()
     
-    if not conn or not cursor:
+    if not conn:
         return jsonify({"error": "Failed to connect to database"}), 500
+    
+    cursor = conn.cursor()
     
     table_name = os.environ.get("MYSQL_TABLE", "")
     
@@ -102,32 +120,37 @@ def get_deals():
     SELECT e.*
     FROM {table_name} e
     INNER JOIN trimmed_medians m ON e.api_query_id = m.api_query_id
-    WHERE e.price < 0.20 * m.trimmed_median
+    WHERE e.price < 0.80 * m.trimmed_median
+      AND e.price > 0.35 * m.trimmed_median
       AND e.fetched_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
       AND e.api_query_id = '{api_query_id}'
     ORDER BY e.price ASC
     LIMIT 5
     """
     
-    cursor.execute(query)
-    results = cursor.fetchall()
+    try:
+        cursor.execute(query)
+        results = cursor.fetchall()
+        
+        columns = [desc[0] for desc in cursor.description]
+        
+        deals = []
+        for row in results:
+            deal = dict(zip(columns, row))
+            deals.append(deal)
+        
+        for d in deals:
+            d.pop('api_query_id', None) 
+            d.pop('ebay_item_id', None)
+        
+        return jsonify(deals)
     
-    # Get column names from cursor description
-    columns = [desc[0] for desc in cursor.description]
+    except mysql.connector.Error as e:
+        return jsonify({"error": f"Database query failed: {str(e)}"}), 500
     
-    # Convert results to list of dictionaries with column names
-    deals = []
-    for row in results:
-        deal = dict(zip(columns, row))
-        deals.append(deal)
-    
-    cursor.close()
-    conn.close()
-    for d in deals:
-        d.pop('api_query_id', None) 
-        d.pop('ebay_item_id', None)
+    finally:
+        cursor.close()
+        conn.close()
 
-    return jsonify(deals)
-    
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
