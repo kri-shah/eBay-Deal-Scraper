@@ -197,6 +197,10 @@ def insert_listings_to_db(
     
     fetched_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     table_name = os.environ.get("MYSQL_TABLE", "")
+    
+    if not table_name or not table_name.replace('_', '').isalnum():
+        raise ValueError("Invalid table name configuration")
+    
     insert_sql = f"""
         INSERT INTO  {table_name} (
             marketplace_id,

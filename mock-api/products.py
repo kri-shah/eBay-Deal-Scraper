@@ -81,6 +81,11 @@ def get_deals():
     
     table_name = os.environ.get("MYSQL_TABLE", "")
     
+    # Validate table name (whitelist approach - table names can't be parameterized)
+    # Only allow alphanumeric characters and underscores
+    if not table_name or not table_name.replace('_', '').isalnum():
+        return jsonify({"error": "Invalid table name"}), 500
+    
     data = request.get_json()
     api_query_text = data.get('query')
     
@@ -123,13 +128,13 @@ def get_deals():
     WHERE e.price < 0.80 * m.trimmed_median
       AND e.price > 0.35 * m.trimmed_median
       AND e.fetched_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-      AND e.api_query_id = '{api_query_id}'
+      AND e.api_query_id = %s
     ORDER BY e.price ASC
     LIMIT 5
     """
     
     try:
-        cursor.execute(query)
+        cursor.execute(query, (api_query_id,))
         results = cursor.fetchall()
         
         columns = [desc[0] for desc in cursor.description]
