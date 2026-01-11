@@ -1,11 +1,17 @@
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 import json
 import os
 import mysql.connector
 from mysql.connector import pooling
 import hashlib
+from dotenv import load_dotenv
+
+# Load .env from parent directory
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 PRODUCTS_JSON_PATH = os.path.join(
     os.path.dirname(__file__), 
