@@ -1,31 +1,10 @@
 // API Base URL - configure this for your environment
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000';
-
-export interface Product {
-  name: string;
-  category: string;
-  query: string;
-}
-
-export interface Deal {
-  title: string;
-  price: number;
-  trimmed_median?: number;
-  condition?: string;
-  listing_url: string;
-  fetched_at?: string;
-  rn?: number;
-  price_percentile?: number;
-}
-
-export interface ApiError {
-  error: string;
-}
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 /**
  * Fetch all products from the API
  */
-export async function fetchProducts(): Promise<Product[]> {
+export async function fetchProducts() {
   const response = await fetch(`${API_BASE_URL}/products`);
   
   if (!response.ok) {
@@ -39,7 +18,7 @@ export async function fetchProducts(): Promise<Product[]> {
 /**
  * Extract unique categories from products
  */
-export function extractCategories(products: Product[]): string[] {
+export function extractCategories(products) {
   const categories = new Set(products.map(p => p.category));
   return Array.from(categories).sort();
 }
@@ -47,14 +26,14 @@ export function extractCategories(products: Product[]): string[] {
 /**
  * Filter products by category
  */
-export function filterProductsByCategory(products: Product[], category: string): Product[] {
+export function filterProductsByCategory(products, category) {
   return products.filter(p => p.category === category);
 }
 
 /**
  * Search for deals using a product query
  */
-export async function searchDeals(query: string): Promise<Deal[]> {
+export async function searchDeals(query) {
   const response = await fetch(`${API_BASE_URL}/deals`, {
     method: 'POST',
     headers: {
@@ -74,7 +53,7 @@ export async function searchDeals(query: string): Promise<Deal[]> {
 /**
  * Calculate discount percentage from price and median
  */
-export function calculateDiscount(price: number | string, median: number | string | undefined | null): number {
+export function calculateDiscount(price, median) {
   const priceNum = Number(price);
   const medianNum = Number(median);
   if (!medianNum || medianNum === 0) return 0;

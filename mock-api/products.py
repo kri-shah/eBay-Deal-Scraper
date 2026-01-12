@@ -147,7 +147,7 @@ def get_deals():
     FROM deduplicated_deals
     WHERE rn = 1
     ORDER BY price ASC
-    LIMIT 5
+    LIMIT 15
     """
     
     try:
