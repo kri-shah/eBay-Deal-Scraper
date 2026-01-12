@@ -1,6 +1,6 @@
 # eBay Deal Scraper
 
-A pricing engine that identifies undervalued eBay listings by comparing live prices against historical medians.
+A pricing engine that identifies undervalued eBay listings by comparing live prices against historical trimmed medians.
 
 ---
 
@@ -29,13 +29,17 @@ A pricing engine that identifies undervalued eBay listings by comparing live pri
 - Lambda, DynamoDB, and API Gateway
 - Architecture diagram included in `/design`
 
+### Rough Frontend 
+- React-based UI for browsing and visualizing deals
+- Integration with existing mock API
+
 ---
 
 ## What’s Next
 
-### Frontend
-- React-based UI for browsing and visualizing deals
-- Integration with existing mock API
+### API / Pricing Engine Work
+- Improve pricing engine + API to return richer listing analytics
+- Add filtering so frontend only displays active deals
 
 ### AWS Migration
 - Replace cron + MySQL with EventBridge + DynamoDB
