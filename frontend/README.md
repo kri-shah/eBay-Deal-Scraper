@@ -1,16 +1,97 @@
-# React + Vite
+# eBay Deal Finder Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React + Tailwind CSS frontend for the eBay pricing engine that helps find deals below market price.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- 🔍 **Search deals** by category and item
+- 📊 **Sort results** by price or discount percentage
+- 📱 **Responsive design** - works on desktop and mobile
+- ⏳ **Loading states** for all API calls
+- ❌ **Error handling** with visible error banners
+- 🎨 **Modern UI** with Tailwind CSS
 
-## React Compiler
+## Getting Started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Prerequisites
 
-## Expanding the ESLint configuration
+- Node.js 18+ and npm
+- Backend API running (see mock-api/)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Installation
+
+```bash
+cd frontend
+npm install
+```
+
+### Configuration
+
+Configure the API base URL by setting the `VITE_API_BASE_URL` environment variable:
+
+```bash
+# Option 1: Create a .env file
+echo "VITE_API_BASE_URL=http://localhost:5000" > .env
+
+# Option 2: Set inline when running
+VITE_API_BASE_URL=http://localhost:5000 npm run dev
+```
+
+**Default:** If not set, the app uses `http://localhost:5000`
+
+### Running the App
+
+```bash
+npm run dev
+```
+
+The app will be available at `http://localhost:5173`
+
+### Building for Production
+
+```bash
+npm run build
+npm run preview
+```
+
+## Project Structure
+
+```
+src/
+├── api/
+│   └── client.ts        # API client with fetch calls
+├── components/
+│   ├── DealCard.jsx     # Individual deal card component
+│   ├── DealsList.jsx    # List/grid of deals with sorting
+│   └── FiltersBar.jsx   # Category, item, and search filters
+├── hooks/
+│   └── useDealsSearch.js # Main state management hook
+├── App.jsx              # Root application component
+├── main.jsx             # React entry point
+└── index.css            # Tailwind imports
+```
+
+## API Endpoints Used
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/products` | GET | Fetches all products with categories |
+| `/deals` | POST | Searches for deals (body: `{ query: string }`) |
+
+## Usage
+
+1. **Select a Category** from the dropdown
+2. **Select an Item** from the category
+3. **Optionally** enter a custom search query
+4. Click **Search Deals** to find deals
+
+Results can be sorted by:
+- **Price** (ascending/descending)
+- **Discount %** (ascending/descending)
+
+Each deal card shows:
+- Title
+- Current price & historical median
+- Discount percentage
+- Item condition
+- Link to eBay listing
