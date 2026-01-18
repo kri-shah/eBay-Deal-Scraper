@@ -127,17 +127,15 @@ export function useDealsSearch() {
 
   // Toggle sort
   const toggleSort = useCallback((field) => {
-    setSortBy((current) => {
-      if (current === field) {
-        // Toggle order if same field
-        setSortOrder((order) => (order === 'asc' ? 'desc' : 'asc'));
-        return current;
-      }
-      // New field: price starts ascending (low to high), discount starts descending (high to low)
+    if (sortBy === field) {
+      // Toggle order if same field
+      setSortOrder((order) => (order === 'asc' ? 'desc' : 'asc'));
+    } else {
+      // New field: price ascending (lowest first), discount descending (largest first)
+      setSortBy(field);
       setSortOrder(field === 'discount' ? 'desc' : 'asc');
-      return field;
-    });
-  }, []);
+    }
+  }, [sortBy]);
 
   return {
     // Products
