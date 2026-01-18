@@ -4,7 +4,6 @@ import {
   extractCategories,
   filterProductsByCategory,
   searchDeals,
-  calculateDiscount,
 } from '../api/client';
 
 export function useDealsSearch() {
@@ -18,7 +17,8 @@ export function useDealsSearch() {
   const [selectedItem, setSelectedItem] = useState('');
 
   // Deals data
-  const [deals, setDeals] = useState([]);
+  const [listings, setListings] = useState([]);
+  const [benchmark, setBenchmark] = useState(null);
   const [dealsLoading, setDealsLoading] = useState(false);
   const [dealsError, setDealsError] = useState(null);
   const [hasSearched, setHasSearched] = useState(false);
@@ -42,24 +42,24 @@ export function useDealsSearch() {
 
   const canSearch = Boolean(selectedCategory && selectedItem);
 
-  // Sorted deals
-  const sortedDeals = useMemo(() => {
-    const dealsWithDiscount = deals.map((deal) => ({
-      ...deal,
-      priceNum: Number(deal.price) || 0,
-      discount: calculateDiscount(deal.price, deal.trimmed_median),
+  // Sorted listings
+  const sortedListings = useMemo(() => {
+    const listingsWithNumbers = listings.map((listing) => ({
+      ...listing,
+      priceNum: Number(listing.price) || 0,
+      discountPct: listing.discount_pct ?? 0,
     }));
 
-    return [...dealsWithDiscount].sort((a, b) => {
+    return [...listingsWithNumbers].sort((a, b) => {
       let comparison = 0;
       if (sortBy === 'price') {
         comparison = a.priceNum - b.priceNum;
       } else if (sortBy === 'discount') {
-        comparison = a.discount - b.discount;
+        comparison = a.discountPct - b.discountPct;
       }
       return sortOrder === 'asc' ? comparison : -comparison;
     });
-  }, [deals, sortBy, sortOrder]);
+  }, [listings, sortBy, sortOrder]);
 
   // Fetch products on mount
   useEffect(() => {
@@ -108,10 +108,12 @@ export function useDealsSearch() {
     try {
       const query = selectedProduct.query;
       const data = await searchDeals(query);
-      setDeals(data);
+      setBenchmark(data.benchmark);
+      setListings(data.listings);
     } catch (err) {
       setDealsError(err.message || 'Failed to search deals');
-      setDeals([]);
+      setBenchmark(null);
+      setListings([]);
     } finally {
       setDealsLoading(false);
     }
@@ -153,7 +155,8 @@ export function useDealsSearch() {
     canSearch,
 
     // Deals
-    deals: sortedDeals,
+    deals: sortedListings,
+    benchmark,
     dealsLoading,
     dealsError,
     hasSearched,
