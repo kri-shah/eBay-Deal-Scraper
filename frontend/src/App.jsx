@@ -14,6 +14,7 @@ function App() {
     setSelectedItem,
     canSearch,
     deals,
+    benchmark,
     dealsLoading,
     dealsError,
     hasSearched,
@@ -97,6 +98,7 @@ function App() {
         <section className="bg-slate-900/50 border border-slate-800/60 rounded-2xl p-6 shadow-xl shadow-slate-950/50">
           <DealsList
             deals={deals}
+            benchmark={benchmark}
             loading={dealsLoading}
             hasSearched={hasSearched}
             sortBy={sortBy}
