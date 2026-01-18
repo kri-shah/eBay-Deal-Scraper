@@ -19,6 +19,20 @@ function SortButton({ field, label, sortBy, sortOrder, onSort }) {
   );
 }
 
+function InfoTooltip({ text }) {
+  return (
+    <div className="relative inline-block group">
+      <div className="w-3.5 h-3.5 rounded-full bg-slate-700/60 border border-slate-600/50 flex items-center justify-center cursor-help hover:bg-slate-600/60 transition-colors">
+        <span className="text-[9px] font-medium text-slate-400 group-hover:text-slate-300">i</span>
+      </div>
+      <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 w-56 px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 pointer-events-none">
+        <p className="text-[11px] text-slate-300 leading-relaxed">{text}</p>
+        <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-slate-700"></div>
+      </div>
+    </div>
+  );
+}
+
 function BenchmarkSummary({ benchmark }) {
   if (!benchmark) return null;
 
@@ -26,6 +40,7 @@ function BenchmarkSummary({ benchmark }) {
   const trimPctDisplay = benchmark.median_type === 'trimmed_median' && benchmark.trim_pct != null
     ? `${benchmark.trim_pct}%`
     : 'N/A';
+  const isTrimmed = benchmark.median_type === 'trimmed_median';
 
   return (
     <div className="mb-6 p-4 bg-slate-800/40 border border-slate-700/50 rounded-xl">
@@ -40,7 +55,12 @@ function BenchmarkSummary({ benchmark }) {
       <div className="grid grid-cols-3 gap-4">
         <div>
           <p className="text-xs text-slate-500 mb-1">Median Type</p>
-          <p className="text-sm font-medium text-slate-200">{medianTypeLabel}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-sm font-medium text-slate-200">{medianTypeLabel}</p>
+            {isTrimmed && (
+              <InfoTooltip text="Calculates the median price after removing extreme outliers (very high or very low prices) to better reflect the typical market value." />
+            )}
+          </div>
         </div>
         <div>
           <p className="text-xs text-slate-500 mb-1">Trim %</p>
