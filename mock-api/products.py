@@ -5,6 +5,7 @@ import os
 import mysql.connector
 from mysql.connector import pooling
 import hashlib
+from datetime import datetime
 from dotenv import load_dotenv
 
 # Load .env from parent directory
@@ -75,6 +76,19 @@ def get_products():
 def get_deals():
     """
     POST endpoint that returns deals filtered by search term.
+    
+    Response schema:
+    {
+        "benchmark": {
+            "value": <numeric median price>,
+            "currency": "USD",
+            "median_type": "trimmed_median",
+            "trim_pct": 15,
+            "window_days": 7,
+            "computed_at": <ISO timestamp>
+        },
+        "listings": [<listing objects>]
+    }
     """
     
     # Get connection from pool
@@ -99,19 +113,50 @@ def get_deals():
         return jsonify({"error": "API query text is required"}), 400
     
     api_query_id = hashlib.sha256(api_query_text.encode("utf-8")).hexdigest()
+    
+    # Configuration for benchmark computation
+    WINDOW_DAYS = 7
+    TRIM_PCT = 15  # Percentage trimmed from bottom tail
 
-    query = f"""
+    # Query to get the trimmed median benchmark value
+    benchmark_query = f"""
+    WITH ranked_prices AS (
+      SELECT 
+        price,
+        PERCENT_RANK() OVER (ORDER BY price) as price_percentile
+      FROM {table_name}
+      WHERE fetched_at >= DATE_SUB(NOW(), INTERVAL {WINDOW_DAYS} DAY)
+        AND api_query_id = %s
+    ),
+    trimmed_prices AS (
+      SELECT price
+      FROM ranked_prices
+      WHERE price_percentile > {TRIM_PCT / 100}
+    )
+    SELECT AVG(price) as trimmed_median
+    FROM (
+      SELECT 
+        price,
+        ROW_NUMBER() OVER (ORDER BY price) as row_num,
+        COUNT(*) OVER () as total_count
+      FROM trimmed_prices
+    ) ranked
+    WHERE row_num IN (FLOOR((total_count + 1) / 2), CEIL((total_count + 1) / 2))
+    """
+
+    # Query to get the deals/listings
+    deals_query = f"""
     WITH ranked_prices AS (
       SELECT 
         *,
         PERCENT_RANK() OVER (PARTITION BY api_query_id ORDER BY price) as price_percentile
       FROM {table_name}
-      WHERE fetched_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+      WHERE fetched_at >= DATE_SUB(NOW(), INTERVAL {WINDOW_DAYS} DAY)
     ),
     trimmed_prices AS (
       SELECT *
       FROM ranked_prices
-      WHERE price_percentile > 0.15
+      WHERE price_percentile > {TRIM_PCT / 100}
     ),
     trimmed_medians AS (
       SELECT 
@@ -134,7 +179,7 @@ def get_deals():
       INNER JOIN trimmed_medians m ON e.api_query_id = m.api_query_id
       WHERE e.price < 0.80 * m.trimmed_median
         AND e.price > 0.35 * m.trimmed_median
-        AND e.fetched_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        AND e.fetched_at >= DATE_SUB(NOW(), INTERVAL {WINDOW_DAYS} DAY)
         AND e.api_query_id = %s
     ),
     deduplicated_deals AS (
@@ -151,21 +196,48 @@ def get_deals():
     """
     
     try:
-        cursor.execute(query, (api_query_id,))
+        # Get benchmark value
+        cursor.execute(benchmark_query, (api_query_id,))
+        benchmark_result = cursor.fetchone()
+        benchmark_value = float(benchmark_result[0]) if benchmark_result and benchmark_result[0] else None
+        
+        # Get listings
+        cursor.execute(deals_query, (api_query_id,))
         results = cursor.fetchall()
         
         columns = [desc[0] for desc in cursor.description]
         
-        deals = []
+        listings = []
         for row in results:
-            deal = dict(zip(columns, row))
-            deals.append(deal)
+            listing = dict(zip(columns, row))
+            listings.append(listing)
         
-        for d in deals:
-            d.pop('api_query_id', None) 
-            d.pop('ebay_item_id', None)
+        for listing in listings:
+            listing.pop('api_query_id', None) 
+            listing.pop('ebay_item_id', None)
+            listing.pop('rn', None)
+            listing.pop('price_percentile', None)
+            
+            # Compute discount percentage from category median
+            if benchmark_value and listing.get('price'):
+                listing['discount_pct'] = round((1 - float(listing['price']) / benchmark_value) * 100, 1)
+            else:
+                listing['discount_pct'] = None
         
-        return jsonify(deals)
+        # Build response with benchmark and listings
+        response = {
+            "benchmark": {
+                "value": benchmark_value,
+                "currency": "USD",
+                "median_type": "trimmed_median",
+                "trim_pct": TRIM_PCT,
+                "window_days": WINDOW_DAYS,
+                "computed_at": datetime.utcnow().isoformat() + "Z"
+            },
+            "listings": listings
+        }
+        
+        return jsonify(response)
     
     except mysql.connector.Error as e:
         return jsonify({"error": f"Database query failed: {str(e)}"}), 500
