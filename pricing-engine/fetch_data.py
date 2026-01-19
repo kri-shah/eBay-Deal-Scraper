@@ -1,6 +1,7 @@
 import csv
 import hashlib
 import json
+import logging
 import os
 import time
 import statistics
@@ -16,6 +17,21 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 load_dotenv(Path(__file__).resolve().parent / ".env")
+
+# Configure logging
+LOG_DIR = Path(__file__).resolve().parent.parent / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)-8s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.FileHandler(LOG_DIR / "fetch_data.log"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 BROWSE_BASE = "https://api.ebay.com/buy/browse/v1"
 
@@ -191,14 +207,28 @@ def insert_listings_to_db(
     api_query_text: str,
     db_config: Dict[str, Any]
 ) -> int:
+    operation_start = time.perf_counter()
+    records_attempted = len(items)
+    records_failed = 0
+    
     if not items:
-        return 0    
+        logger.info(
+            "DB_WRITE | query=%s | records_attempted=0 | records_written=0 | "
+            "records_failed=0 | duration_ms=0 | status=SKIPPED",
+            query_name
+        )
+        return 0
+    
     api_query_id = hashlib.sha256(api_query_text.encode("utf-8")).hexdigest()
     
     fetched_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     table_name = os.environ.get("MYSQL_TABLE", "")
     
     if not table_name or not table_name.replace('_', '').isalnum():
+        logger.error(
+            "DB_WRITE | query=%s | status=FAILED | error=Invalid table name configuration",
+            query_name
+        )
         raise ValueError("Invalid table name configuration")
     
     insert_sql = f"""
@@ -264,12 +294,31 @@ def insert_listings_to_db(
                 if cursor.rowcount > 0:
                     rows_inserted += 1
             except mysql.connector.Error as e:
-                print(f"Warning: Failed to insert item {ebay_item_id}: {e}")
+                records_failed += 1
+                logger.warning(
+                    "DB_WRITE_ITEM | query=%s | ebay_item_id=%s | status=FAILED | error=%s",
+                    query_name, ebay_item_id, str(e)
+                )
         
         conn.commit()
         
+        duration_ms = (time.perf_counter() - operation_start) * 1000
+        logger.info(
+            "DB_WRITE | query=%s | table=%s | marketplace=%s | "
+            "records_attempted=%d | records_written=%d | records_failed=%d | "
+            "records_skipped=%d | duration_ms=%.2f | status=SUCCESS",
+            query_name, table_name, marketplace_id,
+            records_attempted, rows_inserted, records_failed,
+            records_attempted - rows_inserted - records_failed, duration_ms
+        )
+        
     except mysql.connector.Error as e:
-        print(f"Database error: {e}")
+        duration_ms = (time.perf_counter() - operation_start) * 1000
+        logger.error(
+            "DB_WRITE | query=%s | table=%s | records_attempted=%d | "
+            "duration_ms=%.2f | status=FAILED | error=%s",
+            query_name, table_name, records_attempted, duration_ms, str(e)
+        )
         if conn:
             conn.rollback()
         raise
@@ -338,7 +387,16 @@ if __name__ == "__main__":
     marketplace_id = cfg.get("marketplace_id", "EBAY_US")
     cfg_default = cfg.get("default", {})
 
-    start = time.time()
+    run_start = time.time()
+    total_products = len(cfg.get("products", []))
+    total_items_fetched = 0
+    total_records_written = 0
+    total_deals_found = 0
+    
+    logger.info(
+        "RUN_START | products_count=%d | marketplace=%s",
+        total_products, marketplace_id
+    )
 
     for product in cfg.get("products", []):
         name = product.get("name", product.get("query", "Unnamed"))
@@ -352,6 +410,8 @@ if __name__ == "__main__":
 
         blacklist = build_blacklist(cfg, product)
         
+        logger.info("FETCH_START | query=%s | limit=%d", name, limit)
+        
         items = fetch_keyword_items(
             keyword=query,
             marketplace_id=marketplace_id,
@@ -360,6 +420,10 @@ if __name__ == "__main__":
             min_price=min_price,
             conditions=conditions
         )
+        
+        total_items_fetched += len(items)
+        logger.info("FETCH_COMPLETE | query=%s | items_fetched=%d", name, len(items))
+        
         db_config = {
             "host": os.environ.get("MYSQL_HOST", "localhost"),
             "port": int(os.environ.get("MYSQL_PORT", 3306)),
@@ -368,10 +432,24 @@ if __name__ == "__main__":
             "database": os.environ.get("MYSQL_DATABASE", ""),
         }
 
-        insert_listings_to_db(items, marketplace_id=marketplace_id, query_name=name, api_query_text=query, db_config=db_config)
+        records_written = insert_listings_to_db(
+            items, 
+            marketplace_id=marketplace_id, 
+            query_name=name, 
+            api_query_text=query, 
+            db_config=db_config
+        )
+        total_records_written += records_written
         
         deals = score_deals(items, discount_threshold=discount_threshold, trim_fraction=trim_fraction)
+        total_deals_found += len(deals)
         save_deals_csv(deals, f"logs/deals.csv") # add _{name} to csv to have separate files for each product - keeping one massive file for now
         # print_deals(name, query, deals, discount_threshold, top_n=10)
 
-    print(f"Done in {time.time() - start:.2f}s")
+    run_duration = time.time() - run_start
+    logger.info(
+        "RUN_COMPLETE | products_processed=%d | total_items_fetched=%d | "
+        "total_records_written=%d | total_deals_found=%d | duration_sec=%.2f",
+        total_products, total_items_fetched, total_records_written, 
+        total_deals_found, run_duration
+    )
