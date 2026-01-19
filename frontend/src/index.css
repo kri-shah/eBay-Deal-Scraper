@@ -1,10 +1,90 @@
 @import "tailwindcss";
 
-body {
-  @apply bg-slate-950 text-slate-100 antialiased;
+/* Fonts */
+:root {
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', monospace;
 }
 
-/* Custom scrollbar for dark theme */
+/* Dark theme (default) */
+:root,
+[data-theme="dark"] {
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-elevated: #1c2128;
+  --bg-surface: #21262d;
+  
+  --border-default: #30363d;
+  --border-muted: #21262d;
+  
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7681;
+  --text-disabled: #484f58;
+  
+  --accent-blue: #58a6ff;
+  --accent-blue-muted: #388bfd;
+  --accent-blue-subtle: #1f6feb;
+  --accent-blue-bg: rgba(56, 139, 253, 0.1);
+  
+  --signal-green-soft: #3fb950;
+  --signal-green-medium: #2ea043;
+  --signal-green-strong: #238636;
+  --signal-green-bg: rgba(46, 160, 67, 0.15);
+  
+  --signal-red: #f85149;
+  --signal-red-muted: #da3633;
+  --signal-red-bg: rgba(248, 81, 73, 0.1);
+  
+  --signal-amber: #d29922;
+  --signal-amber-muted: #9e6a03;
+  --signal-amber-bg: rgba(210, 153, 34, 0.15);
+
+  --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f6f8fa;
+  --bg-elevated: #ffffff;
+  --bg-surface: #f6f8fa;
+  
+  --border-default: #d0d7de;
+  --border-muted: #d8dee4;
+  
+  --text-primary: #1f2328;
+  --text-secondary: #656d76;
+  --text-muted: #6e7781;
+  --text-disabled: #8c959f;
+  
+  --accent-blue: #0969da;
+  --accent-blue-muted: #218bff;
+  --accent-blue-subtle: #54aeff;
+  --accent-blue-bg: rgba(9, 105, 218, 0.1);
+  
+  --signal-green-soft: #1a7f37;
+  --signal-green-medium: #1a7f37;
+  --signal-green-strong: #116329;
+  --signal-green-bg: rgba(26, 127, 55, 0.1);
+  
+  --signal-red: #cf222e;
+  --signal-red-muted: #d1242f;
+  --signal-red-bg: rgba(207, 34, 46, 0.1);
+  
+  --signal-amber: #9a6700;
+  --signal-amber-muted: #7d4e00;
+  --signal-amber-bg: rgba(154, 103, 0, 0.1);
+
+  --shadow-color: rgba(31, 35, 40, 0.12);
+}
+
+body {
+  @apply antialiased transition-colors duration-200;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -15,10 +95,71 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: var(--border-default);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: var(--text-muted);
+}
+
+/* Custom select styling */
+select option {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+/* Utility classes */
+.bg-primary { background-color: var(--bg-primary); }
+.bg-secondary { background-color: var(--bg-secondary); }
+.bg-elevated { background-color: var(--bg-elevated); }
+.bg-surface { background-color: var(--bg-surface); }
+
+.border-default { border-color: var(--border-default); }
+.border-muted { border-color: var(--border-muted); }
+
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-muted { color: var(--text-muted); }
+
+.text-accent { color: var(--accent-blue); }
+.text-accent-muted { color: var(--accent-blue-muted); }
+
+.text-positive { color: var(--signal-green-soft); }
+.text-positive-medium { color: var(--signal-green-medium); }
+.text-positive-strong { color: var(--signal-green-strong); }
+
+.text-negative { color: var(--signal-red); }
+.text-neutral { color: var(--signal-amber); }
+
+/* Override Tailwind's font-mono with custom stack */
+.font-mono,
+code,
+pre,
+kbd {
+  font-family: var(--font-mono) !important;
+}
+
+.card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-muted);
+  border-radius: 10px;
+}
+
+.card-elevated {
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+}
+
+/* Theme transition for smooth switching */
+* {
+  transition-property: background-color, border-color;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+
+/* Disable transitions on color properties that shouldn't animate */
+.no-transition {
+  transition: none !important;
 }
