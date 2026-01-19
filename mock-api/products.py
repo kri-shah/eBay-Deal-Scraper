@@ -61,7 +61,6 @@ def get_products():
         data = json.load(f)
     
     products = data.get('products', [])
-    
     filtered_products = []
     for product in products:
         filtered_products.append({
