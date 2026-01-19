@@ -86,7 +86,7 @@ export function MethodologyPage() {
             <div className="text-slate-400 space-y-3 leading-relaxed">
               <p>
                 We calculate a <span className="text-slate-200 font-medium">trimmed median</span> rather than a simple average. 
-                This statistical method removes the top and bottom 10% of prices before computing the median, 
+                This statistical method removes the top and bottom 15% of prices before computing the median, 
                 making our benchmark resistant to:
               </p>
               <ul className="list-disc list-inside space-y-1 ml-4">
