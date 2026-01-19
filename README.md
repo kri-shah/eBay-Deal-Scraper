@@ -37,10 +37,6 @@ A pricing engine that identifies undervalued eBay listings by comparing live pri
 
 ## What’s Next
 
-### API / Pricing Engine Work
-- Improve pricing engine + API to return richer listing analytics
-- Add filtering so frontend only displays active deals
-
 ### AWS Migration
 - Replace cron + MySQL with EventBridge + DynamoDB
 - Deploy pricing engine as Lambda functions
