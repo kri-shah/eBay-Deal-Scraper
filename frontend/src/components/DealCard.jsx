@@ -1,71 +1,91 @@
+import { useTheme } from '../hooks/useTheme';
+
 /**
- * Get color classes based on discount percentage
- * 20-30%: Good (emerald)
- * 30-40%: Great (cyan)
- * 40-50%: Excellent (blue)
- * 50%+: Exceptional (violet)
+ * Get color styles based on discount percentage
+ * Color-encoded by strength (market-neutral green scale):
+ * 20-40% → soft green
+ * 40-60% → medium green
+ * 60%+ → strong green (never neon)
  */
-function getDiscountColors(discountPct) {
-  if (discountPct >= 50) {
+function getDiscountColors(discountPct, isDark) {
+  if (discountPct >= 60) {
     return {
-      bg: 'bg-violet-500/15',
-      border: 'border-violet-500/30',
-      text: 'text-violet-400',
+      bg: isDark ? 'rgba(46, 160, 67, 0.2)' : 'rgba(26, 127, 55, 0.12)',
+      border: isDark ? 'rgba(46, 160, 67, 0.4)' : 'rgba(26, 127, 55, 0.3)',
+      text: 'var(--signal-green-soft)',
     };
   }
   if (discountPct >= 40) {
     return {
-      bg: 'bg-blue-500/15',
-      border: 'border-blue-500/30',
-      text: 'text-blue-400',
+      bg: isDark ? 'rgba(46, 160, 67, 0.15)' : 'rgba(26, 127, 55, 0.1)',
+      border: isDark ? 'rgba(46, 160, 67, 0.3)' : 'rgba(26, 127, 55, 0.25)',
+      text: 'var(--signal-green-medium)',
     };
   }
-  if (discountPct >= 30) {
-    return {
-      bg: 'bg-cyan-500/15',
-      border: 'border-cyan-500/30',
-      text: 'text-cyan-400',
-    };
-  }
-  // 20-30% or default
+  // 20-40% (default threshold)
   return {
-    bg: 'bg-emerald-500/15',
-    border: 'border-emerald-500/30',
-    text: 'text-emerald-400',
+    bg: isDark ? 'rgba(35, 134, 54, 0.12)' : 'rgba(17, 99, 41, 0.08)',
+    border: isDark ? 'rgba(35, 134, 54, 0.25)' : 'rgba(17, 99, 41, 0.2)',
+    text: 'var(--signal-green-strong)',
   };
 }
 
 export function DealCard({ deal, benchmark }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  
   const price = Number(deal.price) || 0;
   const discountPct = deal.discount_pct ?? 0;
   const median = benchmark?.value ?? null;
-  const colors = getDiscountColors(discountPct);
+  const colors = getDiscountColors(discountPct, isDark);
 
   return (
     <a
       href={deal.listing_url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex items-center justify-between gap-4 p-4 bg-slate-800/30 hover:bg-slate-800/50 border border-slate-700/40 hover:border-slate-600/50 rounded-xl transition-all"
+      className="group flex items-center justify-between gap-4 p-4 rounded-[10px] transition-all duration-200"
+      style={{
+        backgroundColor: 'var(--bg-surface)',
+        border: '1px solid var(--border-muted)',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = 'var(--bg-elevated)';
+        e.currentTarget.style.borderColor = 'var(--border-default)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+        e.currentTarget.style.borderColor = 'var(--border-muted)';
+      }}
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-3 mb-1.5">
           {discountPct > 0 && (
-            <span className={`inline-flex items-center px-2 py-0.5 ${colors.bg} border ${colors.border} rounded-md text-xs font-semibold ${colors.text}`}>
+            <span 
+              className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold tabular-nums"
+              style={{
+                backgroundColor: colors.bg,
+                border: `1px solid ${colors.border}`,
+                color: colors.text,
+              }}
+            >
               -{discountPct.toFixed(1)}%
             </span>
           )}
           {deal.condition && (
-            <span className="text-xs text-slate-500">
+            <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
               {deal.condition}
             </span>
           )}
         </div>
-        <h3 className="text-sm text-slate-300 group-hover:text-slate-100 truncate transition-colors">
+        <h3 
+          className="text-sm truncate transition-colors leading-relaxed group-hover:brightness-125"
+          style={{ color: 'var(--text-secondary)' }}
+        >
           {deal.title || 'Untitled'}
         </h3>
         {deal.condition_category && (
-          <span className="mt-1 inline-block text-xs text-slate-500 capitalize">
+          <span className="mt-1.5 inline-block text-xs capitalize" style={{ color: 'var(--text-muted)' }}>
             {deal.condition_category}
           </span>
         )}
@@ -73,19 +93,31 @@ export function DealCard({ deal, benchmark }) {
 
       <div className="flex items-center gap-5 flex-shrink-0">
         <div className="text-right">
-          <div className="text-lg font-semibold text-slate-100">
+          <div className="text-lg font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
             ${price.toFixed(2)}
           </div>
           {median && (
-            <div className="text-xs text-slate-500">
+            <div className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
               <span className="line-through">${median.toFixed(2)}</span>
-              <span className={`ml-2 ${colors.text}`}>Save ${(median - price).toFixed(2)}</span>
+              <span className="ml-2" style={{ color: colors.text }}>−${(median - price).toFixed(2)}</span>
             </div>
           )}
         </div>
 
-        <div className="w-8 h-8 bg-slate-700/50 group-hover:bg-cyan-500 border border-slate-600/50 group-hover:border-cyan-500 rounded-lg flex items-center justify-center transition-all">
-          <svg className="w-4 h-4 text-slate-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div 
+          className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200"
+          style={{
+            backgroundColor: 'var(--bg-surface)',
+            border: '1px solid var(--border-default)',
+          }}
+        >
+          <svg 
+            className="w-4 h-4 transition-colors group-hover:scale-110" 
+            style={{ color: 'var(--text-muted)' }} 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
           </svg>
         </div>

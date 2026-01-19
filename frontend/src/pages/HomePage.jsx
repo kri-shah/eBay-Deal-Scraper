@@ -3,6 +3,7 @@ import { useDealsSearch } from '../hooks/useDealsSearch';
 import { FiltersBar } from '../components/FiltersBar';
 import { DealsList } from '../components/DealsList';
 import { HowDealsWork } from '../components/HowDealsWork';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 export function HomePage() {
   const {
@@ -30,22 +31,37 @@ export function HomePage() {
   const error = productsError || dealsError;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
       {/* Header */}
-      <header className="border-b border-slate-800/60 bg-slate-900/50 backdrop-blur-sm sticky top-0 z-10">
+      <header 
+        className="backdrop-blur-sm sticky top-0 z-10"
+        style={{ 
+          borderBottom: '1px solid var(--border-muted)',
+          backgroundColor: 'color-mix(in srgb, var(--bg-secondary) 80%, transparent)',
+        }}
+      >
         <div className="max-w-5xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div 
+                className="w-9 h-9 rounded-lg flex items-center justify-center"
+                style={{ 
+                  backgroundColor: 'var(--bg-surface)',
+                  border: '1px solid var(--border-default)',
+                }}
+              >
+                <svg className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
               </div>
-              <span className="text-lg font-semibold text-slate-100">DealFinder</span>
+              <span className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>PriceIntel</span>
             </Link>
-            <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500">
-              <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></span>
-              Live pricing
+            <div className="flex items-center gap-4">
+              <div className="hidden sm:flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+                <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--signal-green-soft)' }}></span>
+                Live data
+              </div>
+              <ThemeToggle />
             </div>
           </div>
         </div>
@@ -55,24 +71,37 @@ export function HomePage() {
       <main className="max-w-5xl mx-auto px-6 py-12">
         {/* Hero */}
         <div className="mb-10">
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-slate-50 mb-4">
-            Find underpriced items
+          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight mb-3" style={{ color: 'var(--text-primary)' }}>
+            Market Price Analysis
           </h1>
-          <p className="text-slate-400 text-lg max-w-lg">
-            Discover eBay listings priced significantly below market value.
+          <p className="text-base max-w-lg" style={{ color: 'var(--text-secondary)' }}>
+            Identify statistically underpriced eBay listings using trimmed median benchmarks.
           </p>
         </div>
 
         {/* Error Banner */}
         {error && (
-          <div className="mb-8 bg-red-950/40 border border-red-900/50 rounded-xl p-4 flex items-center gap-3">
-            <div className="w-8 h-8 bg-red-900/50 rounded-lg flex items-center justify-center flex-shrink-0">
-              <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div 
+            className="mb-8 rounded-[10px] p-4 flex items-center gap-3"
+            style={{ 
+              backgroundColor: 'var(--signal-red-bg)',
+              border: '1px solid color-mix(in srgb, var(--signal-red) 40%, transparent)',
+            }}
+          >
+            <div 
+              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: 'var(--signal-red-bg)' }}
+            >
+              <svg className="w-4 h-4" style={{ color: 'var(--signal-red)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <span className="text-sm text-red-300 flex-1">{error}</span>
-            <button onClick={clearError} className="text-slate-500 hover:text-slate-300 transition-colors p-1">
+            <span className="text-sm flex-1" style={{ color: 'var(--signal-red)' }}>{error}</span>
+            <button 
+              onClick={clearError} 
+              className="p-1 transition-colors"
+              style={{ color: 'var(--text-muted)' }}
+            >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -102,7 +131,13 @@ export function HomePage() {
         </section>
 
         {/* Results Section */}
-        <section className="bg-slate-900/50 border border-slate-800/60 rounded-2xl p-6 shadow-xl shadow-slate-950/50">
+        <section 
+          className="rounded-xl p-6"
+          style={{ 
+            backgroundColor: 'var(--bg-secondary)',
+            border: '1px solid var(--border-muted)',
+          }}
+        >
           <DealsList
             deals={deals}
             benchmark={benchmark}
@@ -116,10 +151,10 @@ export function HomePage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800/60 mt-12">
+      <footer className="mt-12" style={{ borderTop: '1px solid var(--border-muted)' }}>
         <div className="max-w-5xl mx-auto px-6 py-6">
-          <p className="text-xs text-slate-600">
-            DealFinder · Built for smart shoppers
+          <p className="text-xs" style={{ color: 'var(--text-disabled)' }}>
+            PriceIntel · Quantitative pricing intelligence
           </p>
         </div>
       </footer>
