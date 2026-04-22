@@ -1,0 +1,800 @@
+/* ============================================================
+   Deal feed — Clean fintech aesthetic (Linear/Stripe-ish)
+   Ported from new_frontend/styles.css
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --accent: oklch(0.68 0.17 150);
+  --accent-soft: color-mix(in oklch, var(--accent) 14%, transparent);
+  --line-stroke: var(--fg);
+  --line-fill: color-mix(in oklch, var(--fg) 12%, transparent);
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+html[data-theme="light"] {
+  --bg: #FAFAF8;
+  --bg-raised: #FFFFFF;
+  --bg-sunk: #F2F2EE;
+  --fg: #0B0C0E;
+  --fg-soft: #2C2E33;
+  --muted: #6B6E76;
+  --muted-2: #9AA0A6;
+  --border: #E5E4DE;
+  --border-strong: #D6D5CE;
+  --hover: #F0EFE9;
+  --shadow-sm: 0 1px 2px rgba(10, 10, 15, 0.04);
+  --shadow-md: 0 2px 8px rgba(10, 10, 15, 0.06), 0 1px 2px rgba(10,10,15,0.04);
+  --shadow-lg: 0 12px 32px -8px rgba(10, 10, 15, 0.14), 0 4px 10px rgba(10,10,15,0.06);
+  --line-fill: color-mix(in oklch, var(--fg) 8%, transparent);
+}
+
+html[data-theme="dark"] {
+  --bg: #0B0C0E;
+  --bg-raised: #131418;
+  --bg-sunk: #07080A;
+  --fg: #EDEDEB;
+  --fg-soft: #C8C8C4;
+  --muted: #8B8E95;
+  --muted-2: #5C5F65;
+  --border: #22242A;
+  --border-strong: #2E3138;
+  --hover: #1A1C21;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.5);
+  --shadow-lg: 0 16px 40px -8px rgba(0,0,0,0.6);
+  --line-fill: color-mix(in oklch, var(--fg) 6%, transparent);
+}
+
+.feed-app {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--fg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv11", "ss01", "ss03";
+  font-size: 14px;
+  line-height: 1.45;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.feed-app .mono { font-family: var(--mono); font-feature-settings: "tnum", "zero"; }
+.feed-app .accent { color: var(--accent); }
+.feed-app .muted { color: var(--muted); }
+.feed-app s { text-decoration-thickness: 1px; }
+
+.feed-app button {
+  font-family: inherit;
+  cursor: pointer;
+  border: 0;
+  background: none;
+  color: inherit;
+  padding: 0;
+  font-size: inherit;
+}
+.feed-app input { font-family: inherit; color: inherit; }
+
+/* ============ HEADER ============ */
+.feed-app .site-header {
+  position: sticky; top: 0; z-index: 50;
+  background: color-mix(in oklch, var(--bg) 92%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.feed-app .header-inner {
+  display: grid;
+  grid-template-columns: 240px 1fr auto;
+  align-items: center;
+  gap: 24px;
+  padding: 0 24px;
+  height: 56px;
+}
+.feed-app .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
+.feed-app .brand-mark { display: grid; place-items: center; color: var(--fg); }
+.feed-app .brand-name { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+.feed-app .brand-sub { font-size: 9.5px; color: var(--muted); letter-spacing: 0.06em; display: flex; align-items: center; gap: 4px; }
+.feed-app .brand-sub::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); display: inline-block; animation: feed-pulse 2s ease-in-out infinite; }
+@keyframes feed-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.feed-app .top-nav { display: flex; gap: 2px; justify-self: center; }
+.feed-app .nav-item {
+  padding: 7px 12px;
+  font-size: 13px;
+  color: var(--muted);
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.12s, background 0.12s;
+}
+.feed-app .nav-item:hover { color: var(--fg); background: var(--hover); }
+.feed-app .nav-item.active { color: var(--fg); background: var(--hover); }
+.feed-app .nav-badge {
+  background: var(--border-strong);
+  color: var(--fg);
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.feed-app .header-right { display: flex; align-items: center; gap: 8px; }
+.feed-app .search-wrap {
+  display: flex; align-items: center; gap: 8px;
+  width: 320px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg-raised);
+  color: var(--muted);
+  transition: border-color 0.12s;
+}
+.feed-app .search-wrap:focus-within { border-color: var(--border-strong); color: var(--fg); }
+.feed-app .search-wrap input { flex: 1; border: 0; outline: none; background: transparent; font-size: 13px; }
+.feed-app .search-wrap input::placeholder { color: var(--muted-2); }
+.feed-app .search-wrap kbd {
+  font-size: 10px;
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  background: var(--bg-sunk);
+}
+
+.feed-app .icon-btn {
+  width: 32px; height: 32px;
+  display: grid; place-items: center;
+  color: var(--muted);
+  border-radius: 7px;
+  transition: background 0.12s, color 0.12s;
+}
+.feed-app .icon-btn:hover { background: var(--hover); color: var(--fg); }
+
+.feed-app .user-chip {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--fg);
+  color: var(--bg);
+  display: grid; place-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.feed-app .user-av { color: inherit; }
+
+/* Category tabs */
+.feed-app .cat-tabs { border-top: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+.feed-app .cat-tabs::-webkit-scrollbar { display: none; }
+.feed-app .cat-tabs-inner {
+  display: flex;
+  padding: 0 24px;
+  gap: 2px;
+  min-width: max-content;
+}
+.feed-app .cat-tab {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  font-weight: 500;
+  transition: color 0.12s, border-color 0.12s;
+}
+.feed-app .cat-tab:hover { color: var(--fg); }
+.feed-app .cat-tab.active { color: var(--fg); border-bottom-color: var(--fg); }
+.feed-app .cat-count {
+  font-size: 10.5px;
+  color: var(--muted-2);
+  padding: 1px 6px;
+  background: var(--bg-sunk);
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+.feed-app .cat-tab.active .cat-count { color: var(--muted); }
+
+/* ============ STATS STRIP ============ */
+.feed-app .stats-strip {
+  background: var(--bg-sunk);
+  border-bottom: 1px solid var(--border);
+}
+.feed-app .stats-inner {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  padding: 16px 24px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.feed-app .stats-inner::-webkit-scrollbar { display: none; }
+.feed-app .stat { min-width: fit-content; }
+.feed-app .stat-label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500; margin-bottom: 4px; }
+.feed-app .stat-value {
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.feed-app .stat-value .stat-unit { font-size: 12px; color: var(--muted); font-weight: 400; }
+.feed-app .pulse-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent);
+  display: inline-block;
+  margin-right: 6px;
+  animation: feed-pulse 2s ease-in-out infinite;
+}
+.feed-app .stats-spacer { flex: 1; }
+.feed-app .stat-method { display: flex; align-items: center; gap: 10px; font-size: 11.5px; color: var(--muted); }
+.feed-app .method-k {
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: var(--muted-2);
+  padding: 2px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+}
+
+/* ============ MAIN LAYOUT ============ */
+.feed-app .main {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  flex: 1;
+}
+
+/* ============ FILTER RAIL ============ */
+.feed-app .filter-rail {
+  border-right: 1px solid var(--border);
+  padding: 20px 18px;
+  position: sticky;
+  top: 106px;
+  align-self: start;
+  max-height: calc(100vh - 106px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.feed-app .rail-section { margin-bottom: 22px; }
+.feed-app .rail-h {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.feed-app .rail-slider .slider-head {
+  display: flex; justify-content: space-between;
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+.feed-app .rail-slider .slider-max { color: var(--muted-2); }
+.feed-app .rail-slider input[type="range"] {
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  outline: none;
+  accent-color: var(--accent);
+}
+.feed-app .rail-slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--fg);
+  cursor: grab;
+  border: 2px solid var(--bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.feed-app .pill-group { display: flex; flex-wrap: wrap; gap: 4px; }
+.feed-app .pill-group.tight .pill { padding: 4px 8px; font-size: 11px; }
+.feed-app .pill {
+  padding: 5px 10px;
+  font-size: 11.5px;
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+  border-radius: 5px;
+  color: var(--muted);
+  text-transform: capitalize;
+  transition: all 0.12s;
+}
+.feed-app .pill:hover { border-color: var(--border-strong); color: var(--fg); }
+.feed-app .pill.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+.feed-app .sort-list { display: flex; flex-direction: column; gap: 1px; }
+.feed-app .sort-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  color: var(--fg-soft);
+  border-radius: 5px;
+  text-align: left;
+  width: 100%;
+  transition: background 0.12s;
+}
+.feed-app .sort-row:hover { background: var(--hover); }
+.feed-app .sort-row.on { background: var(--hover); color: var(--fg); font-weight: 500; }
+.feed-app .sort-row .mono { color: var(--accent); font-size: 11px; }
+
+/* ============ FEED COL ============ */
+.feed-app .feed-col {
+  padding: 20px 24px 80px;
+  min-width: 0;
+}
+.feed-app .feed-head {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  margin-bottom: 18px;
+}
+.feed-app .feed-title {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.feed-app .feed-count { font-weight: 400; color: var(--muted); font-size: 14px; }
+.feed-app .feed-subtitle { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+.feed-app .view-switch {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 2px;
+  background: var(--bg-raised);
+}
+.feed-app .view-switch button {
+  width: 28px; height: 26px;
+  border-radius: 5px;
+  display: grid; place-items: center;
+  color: var(--muted);
+  transition: background 0.12s, color 0.12s;
+}
+.feed-app .view-switch button:hover { color: var(--fg); }
+.feed-app .view-switch button.on { background: var(--hover); color: var(--fg); }
+
+/* ============ DEAL CARD — GRID ============ */
+.feed-app .feed-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.feed-app .feed-grid.compact {
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.feed-app .deal-card {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+  position: relative;
+}
+.feed-app .deal-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+.feed-app .card-media {
+  position: relative;
+  background: var(--bg-sunk);
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.feed-app .save-btn {
+  position: absolute; top: 8px; right: 8px;
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  background: color-mix(in oklch, var(--bg-raised) 88%, transparent);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--border);
+  display: grid; place-items: center;
+  color: var(--muted);
+  transition: color 0.12s, background 0.12s;
+}
+.feed-app .save-btn:hover { color: var(--fg); background: var(--bg-raised); }
+.feed-app .save-btn.saved { color: var(--accent); border-color: color-mix(in oklch, var(--accent) 40%, var(--border)); background: var(--accent-soft); }
+.feed-app .save-btn.inline { position: relative; top: auto; right: auto; width: 26px; height: 26px; }
+.feed-app .save-btn.table { width: 22px; height: 22px; border: 0; background: transparent; }
+
+.feed-app .savings-pill {
+  position: absolute; top: 8px; left: 8px;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 8px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid color-mix(in oklch, var(--accent) 35%, transparent);
+  border-radius: 5px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  backdrop-filter: blur(4px);
+}
+.feed-app .savings-vs { font-size: 9.5px; opacity: 0.7; font-weight: 500; font-family: var(--sans); text-transform: uppercase; letter-spacing: 0.04em; }
+
+.feed-app .card-body { padding: 12px 14px 14px; }
+.feed-app .card-title {
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  margin: 0 0 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  letter-spacing: -0.005em;
+}
+.feed-app .card-meta {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 10px;
+  display: flex; gap: 5px;
+  font-family: var(--mono);
+}
+.feed-app .meta-condition { color: var(--fg-soft); font-weight: 500; }
+.feed-app .meta-sep { color: var(--muted-2); }
+
+.feed-app .card-price-row {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  margin-bottom: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+.feed-app .price-stack { display: flex; flex-direction: column; gap: 1px; }
+.feed-app .price-current { font-family: var(--mono); font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+.feed-app .price-fair { font-size: 10.5px; color: var(--muted); font-family: var(--mono); }
+.feed-app .savings-stack { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.feed-app .savings-dollar { font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 600; }
+.feed-app .savings-label { font-size: 9.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+.feed-app .card-footer {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10.5px;
+  color: var(--muted);
+  font-family: var(--mono);
+}
+.feed-app .foot-seller { color: var(--fg-soft); }
+.feed-app .foot-dot { color: var(--muted-2); }
+
+.feed-app .compact .card-body { padding: 10px 12px 12px; }
+.feed-app .compact .card-title { font-size: 12.5px; -webkit-line-clamp: 2; }
+.feed-app .compact .price-current { font-size: 16px; }
+
+/* ============ DEAL CARD — LIST ============ */
+.feed-app .feed-list { display: flex; flex-direction: column; gap: 8px; }
+.feed-app .list-card {
+  display: flex;
+  padding: 0;
+  align-items: stretch;
+  cursor: pointer;
+}
+.feed-app .list-media {
+  width: 96px; flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  background: var(--bg-sunk);
+}
+.feed-app .list-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 150px 90px;
+  gap: 18px;
+  align-items: center;
+  padding: 12px 16px;
+  min-width: 0;
+}
+.feed-app .list-main { min-width: 0; }
+.feed-app .list-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 3px; }
+.feed-app .list-title {
+  font-size: 13.5px;
+  font-weight: 500;
+  margin: 0;
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.feed-app .list-meta { font-size: 11px; color: var(--muted); font-family: var(--mono); display: flex; gap: 5px; flex-wrap: wrap; }
+.feed-app .list-price { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.feed-app .list-savings {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 1px;
+  border-left: 1px solid var(--border);
+  padding-left: 16px;
+  margin-left: -2px;
+}
+.feed-app .savings-pct-inline { font-family: var(--mono); font-size: 11px; color: var(--accent); }
+
+/* ============ DEAL TABLE ============ */
+.feed-app .deal-table-wrap {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  overflow: hidden;
+  overflow-x: auto;
+}
+.feed-app .deal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.feed-app .deal-table th {
+  text-align: left;
+  padding: 10px 12px;
+  background: var(--bg-sunk);
+  border-bottom: 1px solid var(--border);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  position: sticky;
+  top: 0;
+}
+.feed-app .deal-table th:hover { color: var(--fg); }
+.feed-app .deal-table th.right { text-align: right; }
+.feed-app .deal-table th.center { text-align: center; }
+.feed-app .sort-arrow { color: var(--accent); margin-left: 4px; }
+.feed-app .deal-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.feed-app .deal-table tbody tr { cursor: pointer; transition: background 0.1s; }
+.feed-app .deal-table tbody tr:hover { background: var(--hover); }
+.feed-app .deal-table tbody tr:last-child td { border-bottom: 0; }
+.feed-app .deal-table td.right { text-align: right; }
+.feed-app .deal-table td.center { text-align: center; }
+.feed-app .deal-table td.muted { color: var(--muted); }
+.feed-app .deal-table td.accent { color: var(--accent); }
+.feed-app .deal-table .table-title { font-weight: 500; font-size: 12.5px; max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.feed-app .deal-table .table-seller { font-size: 10.5px; color: var(--muted); font-family: var(--mono); }
+.feed-app .deal-table .small { font-size: 11px; color: var(--muted); }
+
+/* ============ DETAIL PANEL ============ */
+.feed-app .panel-scrim {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(2px);
+  z-index: 60;
+  animation: feed-fadeIn 0.18s ease;
+}
+@keyframes feed-fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.feed-app .detail-panel {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: 680px;
+  max-width: 95vw;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  z-index: 61;
+  overflow-y: auto;
+  animation: feed-slideIn 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  font-family: var(--sans);
+  color: var(--fg);
+}
+@keyframes feed-slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+.feed-app .panel-header {
+  padding: 20px 28px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.feed-app .panel-header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.feed-app .panel-id { font-size: 11px; color: var(--muted); padding: 2px 8px; background: var(--bg-sunk); border-radius: 4px; border: 1px solid var(--border); font-family: var(--mono); }
+.feed-app .panel-header-actions { display: flex; align-items: center; gap: 6px; }
+
+.feed-app .ghost-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 11px;
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg-soft);
+  text-decoration: none;
+  transition: background 0.12s, border-color 0.12s;
+  cursor: pointer;
+}
+.feed-app .ghost-btn:hover { background: var(--hover); border-color: var(--border-strong); color: var(--fg); }
+.feed-app .ghost-btn.saved { color: var(--accent); border-color: color-mix(in oklch, var(--accent) 40%, var(--border)); }
+.feed-app .ghost-btn.primary-ghost { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.feed-app .ghost-btn.primary-ghost:hover { background: var(--fg-soft); color: var(--bg); }
+
+.feed-app .panel-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 10px;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+.feed-app .panel-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.feed-app .tag {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 10.5px;
+  font-family: var(--mono);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-sunk);
+  letter-spacing: 0.01em;
+}
+
+.feed-app .panel-hero {
+  padding: 24px 28px;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 24px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+.feed-app .panel-media { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--bg-sunk); color: var(--muted); }
+.feed-app .big-savings { display: flex; align-items: baseline; gap: 8px; margin-bottom: 16px; }
+.feed-app .big-pct { font-family: var(--mono); font-size: 36px; font-weight: 600; color: var(--accent); letter-spacing: -0.02em; }
+.feed-app .big-label { font-size: 12px; color: var(--muted); }
+
+.feed-app .big-price-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.feed-app .panel-k { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
+.feed-app .panel-v { font-size: 14px; font-weight: 500; }
+.feed-app .panel-v.xl { font-size: 17px; }
+.feed-app .panel-v.muted { color: var(--muted); }
+.feed-app .panel-v.accent { color: var(--accent); }
+
+.feed-app .panel-section {
+  padding: 22px 28px;
+  border-bottom: 1px solid var(--border);
+}
+.feed-app .sec-h4,
+.feed-app .panel-section h4 { margin: 0 0 12px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.feed-app .panel-section.grid-2 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 20px 28px; }
+.feed-app .stat-block { border-left: 2px solid var(--border); padding-left: 12px; }
+.feed-app .stat-block .stat-k { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; font-weight: 500; }
+.feed-app .stat-block .stat-v { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+.feed-app .stat-block .stat-unit { font-size: 11px; color: var(--muted); font-weight: 400; margin-left: 2px; }
+.feed-app .stat-block .stat-sub { font-size: 10.5px; color: var(--muted); margin-top: 2px; font-family: var(--mono); }
+
+/* Placeholder */
+.feed-app .placeholder {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: var(--bg-sunk);
+  color: var(--muted-2);
+}
+.feed-app .placeholder-stripes { position: absolute; inset: 0; }
+.feed-app .placeholder.has-art .placeholder-stripes { opacity: 0.35; }
+.feed-app .placeholder-art {
+  position: absolute;
+  inset: 14% 18%;
+  display: grid;
+  place-items: center;
+  color: var(--muted-2);
+  pointer-events: none;
+}
+.feed-app .placeholder-art svg {
+  width: 100%;
+  height: 100%;
+  max-width: 96px;
+  max-height: 96px;
+}
+.feed-app .placeholder-label {
+  position: relative;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  text-transform: uppercase;
+  background: var(--bg-raised);
+  padding: 3px 7px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+.feed-app .placeholder.has-art .placeholder-label {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  margin: 0;
+}
+
+/* Grouped feed sections (category headers) */
+.feed-app .feed-groups { display: flex; flex-direction: column; gap: 28px; }
+.feed-app .feed-group { display: flex; flex-direction: column; }
+.feed-app .feed-group-head {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 10px 0 12px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.feed-app .feed-group-title {
+  font-size: 13px; font-weight: 600; letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg);
+  margin: 0;
+}
+.feed-app .feed-group-count { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+.feed-app .feed-group-stats {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--mono);
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+}
+.feed-app .feed-group-stats .accent { color: var(--accent); }
+.feed-app .feed-group-stats .stat-k-inline {
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  color: var(--muted-2);
+  text-transform: uppercase;
+  font-family: var(--sans);
+  margin-right: 4px;
+}
+
+/* Empty */
+.feed-app .empty { padding: 80px 24px; text-align: center; color: var(--muted); }
+.feed-app .empty-h { font-size: 16px; font-weight: 600; color: var(--fg); margin-bottom: 4px; }
+.feed-app .empty-sub { font-size: 13px; }
+
+/* Skeleton / loading */
+.feed-app .feed-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  color: var(--muted);
+  gap: 12px;
+}
+.feed-app .feed-loading-bar {
+  width: 180px;
+  height: 2px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+.feed-app .feed-loading-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  transform-origin: left;
+  animation: feed-progress 1.2s ease-in-out infinite;
+}
+@keyframes feed-progress {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Scrollbars */
+.feed-app .filter-rail::-webkit-scrollbar,
+.feed-app .deal-table-wrap::-webkit-scrollbar,
+.feed-app .detail-panel::-webkit-scrollbar { width: 8px; height: 8px; }
+.feed-app .filter-rail::-webkit-scrollbar-thumb,
+.feed-app .deal-table-wrap::-webkit-scrollbar-thumb,
+.feed-app .detail-panel::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }

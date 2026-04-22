@@ -1,163 +1,270 @@
-import { Link } from 'react-router-dom';
-import { useDealsSearch } from '../hooks/useDealsSearch';
-import { FiltersBar } from '../components/FiltersBar';
-import { DealsList } from '../components/DealsList';
-import { HowDealsWork } from '../components/HowDealsWork';
-import { ThemeToggle } from '../components/ThemeToggle';
+import { useEffect, useMemo, useState } from 'react';
+import { useDealFeed } from '../hooks/useDealFeed';
+import { useSaved } from '../hooks/useSaved';
+import { Header } from '../components/feed/Header';
+import { CategoryTabs } from '../components/feed/CategoryTabs';
+import { StatsStrip } from '../components/feed/StatsStrip';
+import { FilterRail } from '../components/feed/FilterRail';
+import { DealCardGrid } from '../components/feed/DealCardGrid';
+import { DealCardList } from '../components/feed/DealCardList';
+import { DealTable } from '../components/feed/DealTable';
+import { DetailPanel } from '../components/feed/DetailPanel';
+import { Icon } from '../components/feed/Icon';
+import { fmt } from '../components/feed/format';
+
+const VIEW_STORAGE_KEY = 'feed-view';
+
+function readInitialView() {
+  if (typeof window === 'undefined') return 'grid';
+  const stored = window.localStorage.getItem(VIEW_STORAGE_KEY);
+  if (stored === 'grid' || stored === 'list' || stored === 'table') return stored;
+  return 'grid';
+}
+
+function groupByCategory(deals, categoryOrder) {
+  const groups = new Map();
+  for (const deal of deals) {
+    const key = deal.category || 'Other';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(deal);
+  }
+  const orderedKeys = [
+    ...categoryOrder.filter((k) => groups.has(k)),
+    ...[...groups.keys()].filter((k) => !categoryOrder.includes(k)),
+  ];
+  return orderedKeys.map((key) => {
+    const items = groups.get(key);
+    const total = items.reduce((s, d) => s + (d.dollarsSaved || 0), 0);
+    const avg = items.length
+      ? items.reduce((s, d) => s + (d.discountPct || 0), 0) / items.length
+      : 0;
+    return { category: key, items, total, avgPct: avg };
+  });
+}
 
 export function HomePage() {
   const {
-    categories,
-    items,
     productsLoading,
     productsError,
-    selectedCategory,
-    setSelectedCategory,
-    selectedItem,
-    setSelectedItem,
-    canSearch,
-    deals,
-    benchmark,
     dealsLoading,
     dealsError,
-    hasSearched,
-    sortBy,
-    sortOrder,
-    toggleSort,
+    categories,
+    deals,
+    stats,
+    benchmarkMeta,
+    lastFetchedAt,
     search,
-    clearError,
-  } = useDealsSearch();
+    setSearch,
+    category,
+    setCategory,
+    minSavings,
+    setMinSavings,
+    condition,
+    setCondition,
+    sortKey,
+    sortDir,
+    onSort,
+  } = useDealFeed();
 
-  const error = productsError || dealsError;
+  const { saved, toggleSave } = useSaved();
+
+  const [view, setView] = useState(readInitialView);
+  const [openDeal, setOpenDeal] = useState(null);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(VIEW_STORAGE_KEY, view);
+    } catch {
+      /* ignore */
+    }
+  }, [view]);
+
+  const categoryOrder = useMemo(
+    () => categories.filter((c) => c.id !== 'all').map((c) => c.id),
+    [categories],
+  );
+
+  const groups = useMemo(() => groupByCategory(deals, categoryOrder), [deals, categoryOrder]);
+
+  const sortLabel =
+    sortKey === 'pct'
+      ? '% below fair value'
+      : sortKey === 'dollars'
+      ? '$ savings'
+      : sortKey === 'price'
+      ? 'price'
+      : sortKey;
+
+  const loading = productsLoading || dealsLoading;
+  const bannerError = productsError || dealsError;
+
+  const feedTitle = category === 'all' ? 'All deals' : category;
+  const feedSubCount =
+    category === 'all'
+      ? `${groups.length} ${groups.length === 1 ? 'category' : 'categories'} · ${deals.length} listings`
+      : `${deals.length} listings`;
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-      {/* Header */}
-      <header 
-        className="backdrop-blur-sm sticky top-0 z-10"
-        style={{ 
-          borderBottom: '1px solid var(--border-muted)',
-          backgroundColor: 'color-mix(in srgb, var(--bg-secondary) 80%, transparent)',
-        }}
-      >
-        <div className="max-w-5xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-3">
-              <div 
-                className="w-9 h-9 rounded-lg flex items-center justify-center"
-                style={{ 
-                  backgroundColor: 'var(--bg-surface)',
-                  border: '1px solid var(--border-default)',
-                }}
-              >
-                <svg className="w-5 h-5" style={{ color: 'var(--accent-blue)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-              </div>
-              <span className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>PriceIntel</span>
-            </Link>
-            <div className="flex items-center gap-4">
-              <div className="hidden sm:flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-                <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--signal-green-soft)' }}></span>
-                Live data
-              </div>
-              <ThemeToggle />
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="feed-app">
+      <Header
+        search={search}
+        onSearchChange={setSearch}
+        savedCount={saved.size}
+      />
+      <CategoryTabs categories={categories} selected={category} onSelect={setCategory} />
+      <StatsStrip
+        stats={stats}
+        benchmarkMeta={benchmarkMeta}
+        lastFetchedAt={lastFetchedAt}
+        loading={loading}
+      />
 
-      {/* Main Content */}
-      <main className="max-w-5xl mx-auto px-6 py-12">
-        {/* Hero */}
-        <div className="mb-10">
-          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight mb-3" style={{ color: 'var(--text-primary)' }}>
-            Market Price Analysis
-          </h1>
-          <p className="text-base max-w-lg" style={{ color: 'var(--text-secondary)' }}>
-            Identify statistically underpriced eBay listings using trimmed median benchmarks.
-          </p>
-        </div>
-
-        {/* Error Banner */}
-        {error && (
-          <div 
-            className="mb-8 rounded-[10px] p-4 flex items-center gap-3"
-            style={{ 
-              backgroundColor: 'var(--signal-red-bg)',
-              border: '1px solid color-mix(in srgb, var(--signal-red) 40%, transparent)',
-            }}
-          >
-            <div 
-              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: 'var(--signal-red-bg)' }}
-            >
-              <svg className="w-4 h-4" style={{ color: 'var(--signal-red)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <span className="text-sm flex-1" style={{ color: 'var(--signal-red)' }}>{error}</span>
-            <button 
-              onClick={clearError} 
-              className="p-1 transition-colors"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        )}
-
-        {/* Filters Section */}
-        <section className="mb-6">
-          <FiltersBar
-            categories={categories}
-            items={items}
-            selectedCategory={selectedCategory}
-            selectedItem={selectedItem}
-            onCategoryChange={setSelectedCategory}
-            onItemChange={setSelectedItem}
-            onSearch={search}
-            canSearch={canSearch}
-            loading={dealsLoading}
-            productsLoading={productsLoading}
-          />
-        </section>
-
-        {/* How Deals Work Section */}
-        <section className="mb-10">
-          <HowDealsWork />
-        </section>
-
-        {/* Results Section */}
-        <section 
-          className="rounded-xl p-6"
-          style={{ 
-            backgroundColor: 'var(--bg-secondary)',
-            border: '1px solid var(--border-muted)',
+      {bannerError && (
+        <div
+          style={{
+            padding: '10px 24px',
+            background: 'color-mix(in oklch, var(--accent) 8%, var(--bg-sunk))',
+            borderBottom: '1px solid var(--border)',
+            fontSize: 12,
+            color: 'var(--muted)',
           }}
         >
-          <DealsList
-            deals={deals}
-            benchmark={benchmark}
-            loading={dealsLoading}
-            hasSearched={hasSearched}
-            sortBy={sortBy}
-            sortOrder={sortOrder}
-            onSort={toggleSort}
-          />
+          {bannerError}
+        </div>
+      )}
+
+      <main className="main">
+        <FilterRail
+          minSavings={minSavings}
+          onMinSavingsChange={setMinSavings}
+          condition={condition}
+          onConditionChange={setCondition}
+          sortKey={sortKey}
+          sortDir={sortDir}
+          onSort={onSort}
+        />
+
+        <section className="feed-col">
+          <div className="feed-head">
+            <div className="feed-h-left">
+              <h2 className="feed-title">
+                {feedTitle} ·<span className="feed-count mono"> {feedSubCount}</span>
+              </h2>
+              <div className="feed-subtitle">
+                Sorted by {sortLabel} · {sortDir}
+              </div>
+            </div>
+            <div className="view-switch">
+              <button
+                type="button"
+                className={view === 'grid' ? 'on' : ''}
+                onClick={() => setView('grid')}
+                title="Grid"
+              >
+                <Icon.grid />
+              </button>
+              <button
+                type="button"
+                className={view === 'list' ? 'on' : ''}
+                onClick={() => setView('list')}
+                title="List"
+              >
+                <Icon.list />
+              </button>
+              <button
+                type="button"
+                className={view === 'table' ? 'on' : ''}
+                onClick={() => setView('table')}
+                title="Table"
+              >
+                <Icon.table />
+              </button>
+            </div>
+          </div>
+
+          {loading && deals.length === 0 ? (
+            <div className="feed-loading">
+              <div className="feed-loading-bar" />
+              <span className="mono" style={{ fontSize: 11, letterSpacing: '0.08em' }}>
+                AGGREGATING DEALS…
+              </span>
+            </div>
+          ) : deals.length === 0 ? (
+            <div className="empty">
+              <div className="empty-h">No matches</div>
+              <div className="empty-sub">Loosen your filters to see more opportunities.</div>
+            </div>
+          ) : (
+            <div className="feed-groups">
+              {groups.map((group) => (
+                <section key={group.category} className="feed-group">
+                  <header className="feed-group-head">
+                    <h3 className="feed-group-title">{group.category}</h3>
+                    <span className="feed-group-count">
+                      {group.items.length} {group.items.length === 1 ? 'listing' : 'listings'}
+                    </span>
+                    <div className="feed-group-stats">
+                      <span>
+                        <span className="stat-k-inline">Avg</span>
+                        <span className="accent">{fmt.pct(group.avgPct)}</span>
+                      </span>
+                      <span>
+                        <span className="stat-k-inline">Total</span>
+                        <span className="accent">{fmt.money(group.total)}</span>
+                      </span>
+                    </div>
+                  </header>
+
+                  {view === 'grid' && (
+                    <div className="feed-grid">
+                      {group.items.map((deal) => (
+                        <DealCardGrid
+                          key={deal.id}
+                          deal={deal}
+                          onOpen={setOpenDeal}
+                          saved={saved.has(deal.id)}
+                          onToggleSave={toggleSave}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {view === 'list' && (
+                    <div className="feed-list">
+                      {group.items.map((deal) => (
+                        <DealCardList
+                          key={deal.id}
+                          deal={deal}
+                          onOpen={setOpenDeal}
+                          saved={saved.has(deal.id)}
+                          onToggleSave={toggleSave}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {view === 'table' && (
+                    <DealTable
+                      deals={group.items}
+                      onOpen={setOpenDeal}
+                      savedSet={saved}
+                      onToggleSave={toggleSave}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={onSort}
+                    />
+                  )}
+                </section>
+              ))}
+            </div>
+          )}
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="mt-12" style={{ borderTop: '1px solid var(--border-muted)' }}>
-        <div className="max-w-5xl mx-auto px-6 py-6">
-          <p className="text-xs" style={{ color: 'var(--text-disabled)' }}>
-            PriceIntel · Quantitative pricing intelligence
-          </p>
-        </div>
-      </footer>
+      <DetailPanel
+        deal={openDeal}
+        onClose={() => setOpenDeal(null)}
+        saved={openDeal ? saved.has(openDeal.id) : false}
+        onToggleSave={toggleSave}
+      />
     </div>
   );
 }
