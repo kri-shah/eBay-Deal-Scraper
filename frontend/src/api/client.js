@@ -59,3 +59,44 @@ export function calculateDiscount(price, median) {
   if (!medianNum || medianNum === 0) return 0;
   return Math.round(((medianNum - priceNum) / medianNum) * 100);
 }
+
+/**
+ * Fan-out /deals across every product and return a flat result set.
+ * Each returned entry keeps a reference to its source product + benchmark so
+ * downstream code can derive category, fair value, trim window, etc.
+ *
+ * Returns { results: [{ product, benchmark, listings, error? }], errors: string[] }.
+ */
+export async function fetchDealsForProducts(products, { concurrency = 6 } = {}) {
+  const results = new Array(products.length);
+  const errors = [];
+  let cursor = 0;
+
+  async function worker() {
+    while (true) {
+      const i = cursor++;
+      if (i >= products.length) return;
+      const product = products[i];
+      try {
+        const data = await searchDeals(product.query);
+        results[i] = {
+          product,
+          benchmark: data?.benchmark ?? null,
+          listings: Array.isArray(data?.listings) ? data.listings : [],
+        };
+      } catch (err) {
+        const message = err?.message || 'Failed to fetch deals';
+        errors.push(`${product.name || product.query}: ${message}`);
+        results[i] = { product, benchmark: null, listings: [], error: message };
+      }
+    }
+  }
+
+  const workers = Array.from(
+    { length: Math.max(1, Math.min(concurrency, products.length || 1)) },
+    () => worker()
+  );
+  await Promise.all(workers);
+
+  return { results, errors };
+}
