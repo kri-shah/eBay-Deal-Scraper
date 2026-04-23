@@ -60,11 +60,19 @@ export function useDealFeed() {
   const [lastFetchedAt, setLastFetchedAt] = useState(null);
 
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('all');
+  const [category, setCategoryState] = useState('all');
+  const [productName, setProductName] = useState(null);
   const [minSavings, setMinSavings] = useState(0);
   const [condition, setCondition] = useState('any');
   const [sortKey, setSortKey] = useState('pct');
   const [sortDir, setSortDir] = useState('desc');
+
+  const setCategory = useCallback((next) => {
+    setCategoryState((prev) => {
+      if (prev !== next) setProductName(null);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -171,10 +179,25 @@ export function useDealFeed() {
     return entries;
   }, [products, categoryCounts, allDeals.length]);
 
+  const productOptions = useMemo(() => {
+    if (category === 'all') return [];
+    const counts = new Map();
+    for (const deal of allDeals) {
+      if (deal.category !== category) continue;
+      const name = deal.productName;
+      if (!name) continue;
+      counts.set(name, (counts.get(name) || 0) + 1);
+    }
+    return [...counts.entries()]
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => (b.count - a.count) || a.name.localeCompare(b.name));
+  }, [allDeals, category]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const out = allDeals.filter((deal) => {
       if (category !== 'all' && deal.category !== category) return false;
+      if (productName && deal.productName !== productName) return false;
       if (q) {
         const hay = `${deal.title} ${deal.queryName || ''} ${deal.id}`.toLowerCase();
         if (!hay.includes(q)) return false;
@@ -208,7 +231,7 @@ export function useDealFeed() {
     });
 
     return out;
-  }, [allDeals, category, search, condition, minSavings, sortKey, sortDir]);
+  }, [allDeals, category, productName, search, condition, minSavings, sortKey, sortDir]);
 
   const stats = useMemo(() => {
     const count = filtered.length;
@@ -231,7 +254,9 @@ export function useDealFeed() {
         setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
         return prevKey;
       }
-      setSortDir('desc');
+      // Smart defaults: ascending for price/title (lowest/A-Z first),
+      // descending for savings metrics (largest first).
+      setSortDir(key === 'price' || key === 'title' ? 'asc' : 'desc');
       return key;
     });
   }, []);
@@ -246,6 +271,7 @@ export function useDealFeed() {
     // data
     products,
     categories,
+    productOptions,
     deals: filtered,
     stats,
     benchmarkMeta,
@@ -256,6 +282,8 @@ export function useDealFeed() {
     setSearch,
     category,
     setCategory,
+    productName,
+    setProductName,
     minSavings,
     setMinSavings,
     condition,

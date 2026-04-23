@@ -3,6 +3,7 @@ import { useDealFeed } from '../hooks/useDealFeed';
 import { useSaved } from '../hooks/useSaved';
 import { Header } from '../components/feed/Header';
 import { CategoryTabs } from '../components/feed/CategoryTabs';
+import { ProductSubfilter } from '../components/feed/ProductSubfilter';
 import { StatsStrip } from '../components/feed/StatsStrip';
 import { FilterRail } from '../components/feed/FilterRail';
 import { DealCardGrid } from '../components/feed/DealCardGrid';
@@ -49,6 +50,7 @@ export function HomePage() {
     dealsLoading,
     dealsError,
     categories,
+    productOptions,
     deals,
     stats,
     benchmarkMeta,
@@ -57,6 +59,8 @@ export function HomePage() {
     setSearch,
     category,
     setCategory,
+    productName,
+    setProductName,
     minSavings,
     setMinSavings,
     condition,
@@ -98,10 +102,13 @@ export function HomePage() {
   const loading = productsLoading || dealsLoading;
   const bannerError = productsError || dealsError;
 
-  const feedTitle = category === 'all' ? 'All deals' : category;
+  const feedTitle =
+    category === 'all' ? 'All deals' : productName ? productName : category;
   const feedSubCount =
     category === 'all'
       ? `${groups.length} ${groups.length === 1 ? 'category' : 'categories'} · ${deals.length} listings`
+      : productName
+      ? `${category} · ${deals.length} listings`
       : `${deals.length} listings`;
 
   return (
@@ -112,6 +119,12 @@ export function HomePage() {
         savedCount={saved.size}
       />
       <CategoryTabs categories={categories} selected={category} onSelect={setCategory} />
+      <ProductSubfilter
+        category={category}
+        options={productOptions}
+        selected={productName}
+        onSelect={setProductName}
+      />
       <StatsStrip
         stats={stats}
         benchmarkMeta={benchmarkMeta}

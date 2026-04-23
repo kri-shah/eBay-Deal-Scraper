@@ -14,3 +14,5 @@ venv/
 *.csv
 *.json
 *.log
+
+new_frontend/

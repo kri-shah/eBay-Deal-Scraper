@@ -18,7 +18,7 @@ export function Header({ search, onSearchChange, savedCount = 0 }) {
             </svg>
           </div>
           <div className="brand-text">
-            <div className="brand-name">Deal Scraper</div>
+            <div className="brand-name">eBay Deal Scraper</div>
             <div className="brand-sub mono">LIVE</div>
           </div>
         </Link>
@@ -59,7 +59,7 @@ export function Header({ search, onSearchChange, savedCount = 0 }) {
             <Icon.bell />
           </button>
           <div className="user-chip">
-            <span className="user-av">DS</span>
+            <span className="user-av">EDS</span>
           </div>
         </div>
       </div>
